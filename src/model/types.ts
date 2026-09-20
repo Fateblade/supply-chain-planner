@@ -15,7 +15,7 @@ export interface ProcessStep {
   name: string;
   inputs: ResourceAmount[];
   outputs: ResourceAmount[];
-  /** P2 hook: how long one run takes. Unused by the P1 solver. */
+  /** How long one run takes; needed for station counting (P2). */
   durationSeconds?: number;
 }
 
@@ -23,6 +23,9 @@ export interface ProcessStep {
 export interface Target {
   resourceId: string;
   amount: number;
+  /** Time frame in seconds (60 = per minute, 3600 = per hour).
+   *  Undefined means a one-off total with no rate requirement. */
+  perSeconds?: number;
 }
 
 export interface Plan {

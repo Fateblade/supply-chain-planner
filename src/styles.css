@@ -218,6 +218,15 @@ select:focus {
   flex: 1;
   font-weight: 600;
 }
+.step-head .duration {
+  width: 64px;
+}
+.stations {
+  color: var(--accent);
+}
+.target-row select {
+  width: 92px;
+}
 .step-body {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

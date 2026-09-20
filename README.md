@@ -29,8 +29,9 @@ JSON from the header.
 ## Roadmap
 
 - **P1 (done):** resources, steps, final targets, backward calculation.
-- **P2:** time planning — step durations, required rate, how many parallel
-  stations of one kind you need (`durationSeconds` already exists on the model).
+- **P2 (done):** time planning — set `s/run` on a step, mark a target as
+  *per min* / *per hour*, and the result table shows how many parallel
+  stations of each step kind you need (`src/model/throughput.ts`).
 - **P3:** copy/paste of steps and whole sub-plans as reusable templates.
 
 ## How the calculation works

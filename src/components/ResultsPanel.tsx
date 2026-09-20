@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import type { Plan } from '../model/types';
 import type { SolveResult } from '../model/solver';
+import { stationRequirements } from '../model/throughput';
 import { fmt } from '../format';
 
 interface Props {
@@ -19,6 +21,16 @@ export function ResultsPanel({ plan, result, onChange }: Props) {
       targets: plan.targets.map((t) => (t.resourceId === rid ? { ...t, amount } : t)),
     });
   }
+
+  function setTargetRate(rid: string, perSeconds: number | undefined) {
+    onChange({
+      ...plan,
+      targets: plan.targets.map((t) => (t.resourceId === rid ? { ...t, perSeconds } : t)),
+    });
+  }
+
+  const throughput = useMemo(() => stationRequirements(plan), [plan]);
+  const hasRateTarget = plan.targets.some((t) => t.perSeconds !== undefined && t.perSeconds > 0);
 
   const activeSteps = plan.steps.filter((s) => (result.runs.get(s.id) ?? 0) > 0);
   const orderedBalances = [...result.balances].sort((a, b) => {
@@ -46,6 +58,18 @@ export function ResultsPanel({ plan, result, onChange }: Props) {
             value={t.amount}
             onChange={(e) => setTargetAmount(t.resourceId, Math.max(0, Number(e.target.value) || 0))}
           />
+          <select
+            value={t.perSeconds ?? 0}
+            title="One-off total, or a rate per minute/hour (enables station counting)"
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setTargetRate(t.resourceId, v > 0 ? v : undefined);
+            }}
+          >
+            <option value={0}>total</option>
+            <option value={60}>per min</option>
+            <option value={3600}>per hour</option>
+          </select>
         </div>
       ))}
 
@@ -55,14 +79,32 @@ export function ResultsPanel({ plan, result, onChange }: Props) {
           {activeSteps.length === 0 && <p className="empty-hint">Nothing to produce yet.</p>}
           <table className="result-table">
             <tbody>
-              {activeSteps.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name || '(unnamed step)'}</td>
-                  <td className="num">{fmt(result.runs.get(s.id) ?? 0)}×</td>
-                </tr>
-              ))}
+              {activeSteps.map((s) => {
+                const tp = throughput.get(s.id);
+                return (
+                  <tr key={s.id}>
+                    <td>{s.name || '(unnamed step)'}</td>
+                    <td className="num">{fmt(result.runs.get(s.id) ?? 0)}×</td>
+                    {hasRateTarget && (
+                      <td className="num stations" title="Parallel stations needed for the rate">
+                        {tp && tp.runsPerSecond > 0
+                          ? tp.stations === null
+                            ? `${fmt(tp.runsPerSecond)}/s · set s/run`
+                            : `${tp.stations}× station${tp.stations === 1 ? '' : 's'} (${fmt(tp.runsPerSecond)}/s)`
+                          : '–'}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          {hasRateTarget && (
+            <p className="hint">
+              Stations = runs/sec × sec/run, rounded up. Set <b>s/run</b> on a step card to get its
+              station count.
+            </p>
+          )}
 
           <h3>Resources</h3>
           <table className="result-table">

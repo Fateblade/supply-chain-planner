@@ -104,6 +104,19 @@ export function StepCard({ plan, step, onChange }: Props) {
           placeholder="Step name"
           onChange={(e) => patchStep({ name: e.target.value })}
         />
+        <input
+          className="duration"
+          type="number"
+          min={0}
+          step="any"
+          placeholder="s/run"
+          title="Seconds per run (needed for station counting)"
+          value={step.durationSeconds ?? ''}
+          onChange={(e) => {
+            const v = e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0);
+            patchStep({ durationSeconds: v });
+          }}
+        />
         <button type="button" className="icon" title="Duplicate step" onClick={duplicate}>
           ⧉
         </button>

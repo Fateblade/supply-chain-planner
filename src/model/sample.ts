@@ -26,18 +26,21 @@ export function samplePlan(): Plan {
         name: 'Smelt copper',
         inputs: [{ resourceId: copperOre, amount: 1 }],
         outputs: [{ resourceId: copperPlate, amount: 1 }],
+        durationSeconds: 2,
       },
       {
         id: newId(),
         name: 'Smelt iron',
         inputs: [{ resourceId: ironOre, amount: 1 }],
         outputs: [{ resourceId: ironPlate, amount: 1 }],
+        durationSeconds: 2,
       },
       {
         id: newId(),
         name: 'Draw cable',
         inputs: [{ resourceId: copperPlate, amount: 1 }],
         outputs: [{ resourceId: cable, amount: 2 }],
+        durationSeconds: 0.5,
       },
       {
         id: newId(),
@@ -47,8 +50,9 @@ export function samplePlan(): Plan {
           { resourceId: ironPlate, amount: 1 },
         ],
         outputs: [{ resourceId: circuit, amount: 1 }],
+        durationSeconds: 1,
       },
     ],
-    targets: [{ resourceId: circuit, amount: 10 }],
+    targets: [{ resourceId: circuit, amount: 60, perSeconds: 60 }],
   };
 }
