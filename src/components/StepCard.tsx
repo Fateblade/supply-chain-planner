@@ -5,10 +5,11 @@ interface Props {
   plan: Plan;
   step: ProcessStep;
   onChange: (plan: Plan) => void;
+  onSaveTemplate: (step: ProcessStep) => void;
 }
 
 /** One process step card: name, input rows, output rows, duplicate/delete. */
-export function StepCard({ plan, step, onChange }: Props) {
+export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
   function patchStep(patch: Partial<ProcessStep>) {
     onChange({
       ...plan,
@@ -117,6 +118,14 @@ export function StepCard({ plan, step, onChange }: Props) {
             patchStep({ durationSeconds: v });
           }}
         />
+        <button
+          type="button"
+          className="icon"
+          title="Save as reusable template (appears in the Library)"
+          onClick={() => onSaveTemplate(step)}
+        >
+          ☆
+        </button>
         <button type="button" className="icon" title="Duplicate step" onClick={duplicate}>
           ⧉
         </button>

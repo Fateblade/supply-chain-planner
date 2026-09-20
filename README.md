@@ -32,7 +32,10 @@ JSON from the header.
 - **P2 (done):** time planning — set `s/run` on a step, mark a target as
   *per min* / *per hour*, and the result table shows how many parallel
   stations of each step kind you need (`src/model/throughput.ts`).
-- **P3:** copy/paste of steps and whole sub-plans as reusable templates.
+- **P3 (done):** reuse — save any step as a template with ☆ (stored by
+  resource name, insertable into any plan, missing resources auto-created)
+  and save/load whole plans as named templates. Both live in the Library
+  panel and persist across sessions (`src/model/templates.ts`).
 
 ## How the calculation works
 
