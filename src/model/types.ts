@@ -10,6 +10,20 @@ export interface ResourceAmount {
   amount: number;
 }
 
+export type PortKind = 'input' | 'output';
+
+export interface PortRef {
+  stepId: string;
+  kind: PortKind;
+  index: number;
+}
+
+export interface StepLink {
+  id: string;
+  from: PortRef;
+  to: PortRef;
+}
+
 export interface ProcessStep {
   id: string;
   name: string;
@@ -35,6 +49,8 @@ export interface Plan {
   resources: Resource[];
   steps: ProcessStep[];
   targets: Target[];
+  /** Optional for backwards compatibility with plans created before links. */
+  links?: StepLink[];
 }
 
 export function newId(): string {

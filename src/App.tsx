@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Plan, ProcessStep } from './model/types';
 import { newId } from './model/types';
+import { connectPorts } from './model/links';
 import { solvePlan } from './model/solver';
 import { samplePlan } from './model/sample';
 import { stepToTemplate } from './model/templates';
@@ -41,12 +42,11 @@ export default function App() {
   }
 
   function addStepAt(x: number, y: number) {
-    if (plan.resources.length === 0) return;
     const step = {
       id: newId(),
       name: '',
       inputs: [],
-      outputs: [{ resourceId: plan.resources[0].id, amount: 1 }],
+      outputs: [],
       position: { x, y },
     };
     setPlan({ ...plan, steps: [...plan.steps, step] });
@@ -65,27 +65,40 @@ export default function App() {
   function connectSteps(
     sourceStepId: string,
     sourceKind: 'input' | 'output',
+    sourceIndex: number,
     resourceId: string,
     targetStepId: string,
+    targetKind: 'input' | 'output',
+    targetIndex?: number,
   ) {
-    if (sourceStepId === targetStepId) return;
-    const targetKind = sourceKind === 'output' ? 'inputs' : 'outputs';
-    setPlan({
-      ...plan,
-      steps: plan.steps.map((step) => {
-        if (step.id !== targetStepId) return step;
-        const amounts = step[targetKind];
-        const existing = amounts.find((amount) => amount.resourceId === resourceId);
-        const nextAmounts = existing
-          ? amounts.map((amount) =>
-              amount.resourceId === resourceId
-                ? { ...amount, amount: amount.amount + 1 }
-                : amount,
-            )
-          : [...amounts, { resourceId, amount: 1 }];
-        return { ...step, [targetKind]: nextAmounts };
-      }),
-    });
+    if (sourceStepId === targetStepId || sourceKind === targetKind) return;
+    let nextPlan = plan;
+    let resolvedTargetIndex = targetIndex;
+
+    if (resolvedTargetIndex === undefined) {
+      const target = plan.steps.find((step) => step.id === targetStepId);
+      if (!target) return;
+      resolvedTargetIndex = target[targetKind === 'input' ? 'inputs' : 'outputs'].length;
+      const amounts = { resourceId, amount: 1 };
+      nextPlan = {
+        ...plan,
+        steps: plan.steps.map((step) => {
+          if (step.id !== targetStepId) return step;
+          return targetKind === 'input'
+            ? { ...step, inputs: [...step.inputs, amounts] }
+            : { ...step, outputs: [...step.outputs, amounts] };
+        }),
+      };
+    }
+
+    setPlan(
+      connectPorts(
+        nextPlan,
+        { stepId: sourceStepId, kind: sourceKind, index: sourceIndex },
+        { stepId: targetStepId, kind: targetKind, index: resolvedTargetIndex },
+        resourceId,
+      ),
+    );
   }
 
   async function importPlan(file: File) {

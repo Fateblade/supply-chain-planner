@@ -312,6 +312,20 @@ select:focus {
   background-image: radial-gradient(#2b3949 1px, transparent 1px);
   background-size: 24px 24px;
 }
+.field-links {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.field-links path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
 .field-step {
   position: absolute;
   width: 190px;
@@ -323,6 +337,7 @@ select:focus {
   box-shadow: 0 10px 20px rgb(0 0 0 / 28%);
   cursor: grab;
   user-select: none;
+  z-index: 1;
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 .field-step:active {

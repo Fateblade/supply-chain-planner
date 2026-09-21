@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Plan, Resource } from '../model/types';
+import { removeResourceAndLinks } from '../model/links';
 import { newId } from '../model/types';
 
 interface Props {
@@ -43,15 +44,11 @@ export function ResourcePanel({ plan, onChange }: Props) {
   }
 
   function remove(rid: string) {
+    const withoutResource = removeResourceAndLinks(plan, rid);
     onChange({
-      ...plan,
-      resources: plan.resources.filter((r) => r.id !== rid),
-      targets: plan.targets.filter((t) => t.resourceId !== rid),
-      steps: plan.steps.map((s) => ({
-        ...s,
-        inputs: s.inputs.filter((a) => a.resourceId !== rid),
-        outputs: s.outputs.filter((a) => a.resourceId !== rid),
-      })),
+      ...withoutResource,
+      resources: withoutResource.resources.filter((resource) => resource.id !== rid),
+      targets: withoutResource.targets.filter((target) => target.resourceId !== rid),
     });
   }
 

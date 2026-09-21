@@ -1,4 +1,5 @@
 import type { Plan, ProcessStep, ResourceAmount } from '../model/types';
+import { removePortAndLinks, removeStepAndLinks } from '../model/links';
 import { newId } from '../model/types';
 
 interface Props {
@@ -32,7 +33,7 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
   }
 
   function removeRow(kind: 'inputs' | 'outputs', idx: number) {
-    patchStep({ [kind]: step[kind].filter((_, i) => i !== idx) } as Partial<ProcessStep>);
+    onChange(removePortAndLinks(plan, step.id, kind === 'inputs' ? 'input' : 'output', idx));
   }
 
   function duplicate() {
@@ -50,7 +51,7 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
   }
 
   function remove() {
-    onChange({ ...plan, steps: plan.steps.filter((s) => s.id !== step.id) });
+    onChange(removeStepAndLinks(plan, step.id));
   }
 
   function renderRows(kind: 'inputs' | 'outputs') {

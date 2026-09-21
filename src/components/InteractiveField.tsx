@@ -1,5 +1,5 @@
 import type { DragEvent, MouseEvent } from 'react';
-import type { Plan, ProcessStep } from '../model/types';
+import type { Plan, PortKind, ProcessStep, StepLink } from '../model/types';
 
 interface Props {
   plan: Plan;
@@ -9,14 +9,23 @@ interface Props {
   onAddStep: (x: number, y: number) => void;
   onConnect: (
     sourceStepId: string,
-    sourceKind: 'input' | 'output',
+    sourceKind: PortKind,
+    sourceIndex: number,
     resourceId: string,
     targetStepId: string,
+    targetKind: PortKind,
+    targetIndex?: number,
   ) => void;
 }
 
 const NODE_WIDTH = 190;
 const NODE_HEIGHT = 120;
+const PORT_TOP = 52;
+const PORT_GAP = 29;
+
+type DragPayload =
+  | { type: 'resource'; stepId: string; kind: PortKind; index: number; resourceId: string }
+  | { type: 'step'; stepId: string };
 
 function defaultPosition(index: number): { x: number; y: number } {
   return {
@@ -29,17 +38,31 @@ function resourceName(plan: Plan, resourceId: string): string {
   return plan.resources.find((resource) => resource.id === resourceId)?.name ?? 'Unknown resource';
 }
 
-function dragPayload(event: DragEvent<HTMLElement>):
-  | { type: 'resource'; stepId: string; kind: 'input' | 'output'; resourceId: string }
-  | { type: 'step'; stepId: string }
-  | null {
+function dragPayload(event: DragEvent<HTMLElement>): DragPayload | null {
   try {
-    return JSON.parse(event.dataTransfer.getData('application/json')) as
-      | { type: 'resource'; stepId: string; kind: 'input' | 'output'; resourceId: string }
-      | { type: 'step'; stepId: string };
+    return JSON.parse(event.dataTransfer.getData('application/json')) as DragPayload;
   } catch {
     return null;
   }
+}
+
+function portPoint(
+  step: ProcessStep,
+  index: number,
+  kind: PortKind,
+  stepIndex: number,
+): { x: number; y: number } {
+  const position = step.position ?? defaultPosition(stepIndex);
+  return {
+    x: position.x + (kind === 'output' ? NODE_WIDTH / 2 : -NODE_WIDTH / 2),
+    y: position.y - NODE_HEIGHT / 2 + PORT_TOP + index * PORT_GAP,
+  };
+}
+
+function linkPath(from: { x: number; y: number }, to: { x: number; y: number }): string {
+  const direction = to.x >= from.x ? 1 : -1;
+  const curve = Math.max(40, Math.abs(to.x - from.x) * 0.45);
+  return `M ${from.x} ${from.y} C ${from.x + curve * direction} ${from.y}, ${to.x - curve * direction} ${to.y}, ${to.x} ${to.y}`;
 }
 
 function StepNode({
@@ -80,24 +103,55 @@ function StepNode({
 
   function startHandleDrag(
     event: DragEvent<HTMLDivElement>,
-    kind: 'input' | 'output',
+    kind: PortKind,
+    index: number,
     resourceId: string,
   ) {
     event.stopPropagation();
     event.dataTransfer.setData(
       'application/json',
-      JSON.stringify({ type: 'resource', stepId: step.id, kind, resourceId }),
+      JSON.stringify({ type: 'resource', stepId: step.id, kind, index, resourceId }),
     );
     event.dataTransfer.effectAllowed = 'copy';
   }
 
-  function dropOnStep(event: DragEvent<HTMLDivElement>) {
+  function connectToTarget(
+    event: DragEvent<HTMLDivElement>,
+    targetKind: PortKind,
+    targetIndex?: number,
+  ) {
     event.preventDefault();
     event.stopPropagation();
     const payload = dragPayload(event);
-    if (payload?.type === 'resource' && payload.stepId !== step.id) {
-      onConnect(payload.stepId, payload.kind, payload.resourceId, step.id);
-    }
+    if (payload?.type !== 'resource' || payload.stepId === step.id) return;
+    if (payload.kind === targetKind) return;
+    onConnect(
+      payload.stepId,
+      payload.kind,
+      payload.index,
+      payload.resourceId,
+      step.id,
+      targetKind,
+      targetIndex,
+    );
+  }
+
+  function renderHandle(kind: PortKind, resourceId: string, index: number) {
+    const isInput = kind === 'input';
+    return (
+      <div
+        className={`field-handle ${isInput ? 'input-handle' : 'output-handle'}`}
+        key={`${resourceId}-${index}`}
+        draggable
+        onDragStart={(event) => startHandleDrag(event, kind, index, resourceId)}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => connectToTarget(event, kind, index)}
+        title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect`}
+      >
+        {isInput ? <span>{resourceName(plan, resourceId)}</span> : <b>{resourceName(plan, resourceId)}</b>}
+        <b>{isInput ? step.inputs[index].amount : step.outputs[index].amount}</b>
+      </div>
+    );
   }
 
   return (
@@ -109,42 +163,43 @@ function StepNode({
       onDragStart={startDrag}
       onDragEnd={finishDrag}
       onDragOver={(event) => event.preventDefault()}
-      onDrop={dropOnStep}
+      onDrop={(event) => {
+        const payload = dragPayload(event);
+        if (payload?.type === 'resource') {
+          connectToTarget(event, payload.kind === 'output' ? 'input' : 'output');
+        }
+      }}
       title="Click to configure · drag to move"
     >
       <div className="field-step-title">{step.name || 'Unnamed step'}</div>
       <div className="field-step-body">
         <div className="field-handles input-handles">
-          {step.inputs.map((input, inputIndex) => (
-            <div
-              className="field-handle input-handle"
-              key={`${input.resourceId}-${inputIndex}`}
-              draggable
-              onDragStart={(event) => startHandleDrag(event, 'input', input.resourceId)}
-              title={`Input: ${resourceName(plan, input.resourceId)} · drag to another step`}
-            >
-              <span>{resourceName(plan, input.resourceId)}</span>
-              <b>{input.amount}</b>
-            </div>
-          ))}
+          {step.inputs.map((input, inputIndex) => renderHandle('input', input.resourceId, inputIndex))}
         </div>
         <div className="field-arrow">→</div>
         <div className="field-handles output-handles">
-          {step.outputs.map((output, outputIndex) => (
-            <div
-              className="field-handle output-handle"
-              key={`${output.resourceId}-${outputIndex}`}
-              draggable
-              onDragStart={(event) => startHandleDrag(event, 'output', output.resourceId)}
-              title={`Output: ${resourceName(plan, output.resourceId)} · drag to another step`}
-            >
-              <b>{output.amount}</b>
-              <span>{resourceName(plan, output.resourceId)}</span>
-            </div>
-          ))}
+          {step.outputs.map((output, outputIndex) => renderHandle('output', output.resourceId, outputIndex))}
         </div>
       </div>
     </div>
+  );
+}
+
+function LinkLines({ plan }: { plan: Plan }) {
+  const links = plan.links ?? [];
+  return (
+    <svg className="field-links" width="1040" height="760" aria-hidden="true">
+      {links.map((link: StepLink) => {
+        const fromStepIndex = plan.steps.findIndex((step) => step.id === link.from.stepId);
+        const toStepIndex = plan.steps.findIndex((step) => step.id === link.to.stepId);
+        const fromStep = plan.steps[fromStepIndex];
+        const toStep = plan.steps[toStepIndex];
+        if (!fromStep || !toStep) return null;
+        const from = portPoint(fromStep, link.from.index, link.from.kind, fromStepIndex);
+        const to = portPoint(toStep, link.to.index, link.to.kind, toStepIndex);
+        return <path key={link.id} d={linkPath(from, to)} />;
+      })}
+    </svg>
   );
 }
 
@@ -173,6 +228,7 @@ export function InteractiveField({
       </div>
       <div className="field-scroll">
         <div className="field-canvas" onDoubleClick={addOnDoubleClick}>
+          <LinkLines plan={plan} />
           {plan.steps.map((step, index) => (
             <StepNode
               key={step.id}
