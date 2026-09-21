@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { instantiatePlanTemplate, instantiateStepTemplate, stepToTemplate } from './templates';
-import type { PlanTemplate } from './templates';
-import type { Plan } from './types';
-import { newId } from './types';
+import {
+  instantiatePlanTemplate,
+  instantiateStepTemplate,
+  stepToTemplate,
+  type PlanTemplate,
+} from './templates';
+import { newId, type Plan } from './types';
 
 function basePlan(): Plan {
   const ore = newId();

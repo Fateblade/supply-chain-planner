@@ -17,6 +17,8 @@ export interface ProcessStep {
   outputs: ResourceAmount[];
   /** How long one run takes; needed for station counting (P2). */
   durationSeconds?: number;
+  /** Position on the interactive planning field. Older plans may omit it. */
+  position?: { x: number; y: number };
 }
 
 /** A target marks a resource as "final": the plan must deliver this much of it. */

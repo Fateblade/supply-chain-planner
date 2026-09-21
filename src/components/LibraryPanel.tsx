@@ -1,7 +1,37 @@
 import type { Plan } from '../model/types';
-import type { PlanTemplate, StepTemplate } from '../model/templates';
+import type { PlanTemplate, StepTemplate, TemplateAmount } from '../model/templates';
 import { instantiatePlanTemplate, instantiateStepTemplate } from '../model/templates';
 import { newId } from '../model/types';
+
+/** Tooltip describing what a step template consumes and produces. */
+function templateSummary(t: StepTemplate): string {
+  const fmt = (a: TemplateAmount) => `${a.amount} ${a.resourceName}`;
+  return `${t.inputs.map(fmt).join(', ')} → ${t.outputs.map(fmt).join(', ')}`;
+}
+
+interface TemplateRowProps {
+  name: string;
+  tooltip?: string;
+  actionLabel: string;
+  onAction: () => void;
+  onDelete: () => void;
+}
+
+function TemplateRow({ name, tooltip, actionLabel, onAction, onDelete }: TemplateRowProps) {
+  return (
+    <li className="template-row">
+      <span className="template-name" title={tooltip}>
+        {name}
+      </span>
+      <button type="button" onClick={onAction}>
+        {actionLabel}
+      </button>
+      <button type="button" className="icon danger" title="Delete template" onClick={onDelete}>
+        ×
+      </button>
+    </li>
+  );
+}
 
 interface Props {
   plan: Plan;
@@ -49,22 +79,14 @@ export function LibraryPanel({
       )}
       <ul className="template-list">
         {stepTemplates.map((t) => (
-          <li key={t.id} className="template-row">
-            <span className="template-name" title={`${t.inputs.map((a) => `${a.amount} ${a.resourceName}`).join(', ')} → ${t.outputs.map((a) => `${a.amount} ${a.resourceName}`).join(', ')}`}>
-              {t.name}
-            </span>
-            <button type="button" onClick={() => onChange(instantiateStepTemplate(plan, t))}>
-              Insert
-            </button>
-            <button
-              type="button"
-              className="icon danger"
-              title="Delete template"
-              onClick={() => onStepTemplates(stepTemplates.filter((x) => x.id !== t.id))}
-            >
-              ×
-            </button>
-          </li>
+          <TemplateRow
+            key={t.id}
+            name={t.name}
+            tooltip={templateSummary(t)}
+            actionLabel="Insert"
+            onAction={() => onChange(instantiateStepTemplate(plan, t))}
+            onDelete={() => onStepTemplates(stepTemplates.filter((x) => x.id !== t.id))}
+          />
         ))}
       </ul>
 
@@ -74,20 +96,13 @@ export function LibraryPanel({
       </button>
       <ul className="template-list">
         {planTemplates.map((t) => (
-          <li key={t.id} className="template-row">
-            <span className="template-name">{t.name}</span>
-            <button type="button" onClick={() => loadPlanTemplate(t)}>
-              Load
-            </button>
-            <button
-              type="button"
-              className="icon danger"
-              title="Delete template"
-              onClick={() => onPlanTemplates(planTemplates.filter((x) => x.id !== t.id))}
-            >
-              ×
-            </button>
-          </li>
+          <TemplateRow
+            key={t.id}
+            name={t.name}
+            actionLabel="Load"
+            onAction={() => loadPlanTemplate(t)}
+            onDelete={() => onPlanTemplates(planTemplates.filter((x) => x.id !== t.id))}
+          />
         ))}
       </ul>
     </section>

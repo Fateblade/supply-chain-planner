@@ -15,17 +15,24 @@ import { ResourcePanel } from './components/ResourcePanel';
 import { StepCard } from './components/StepCard';
 import { ResultsPanel } from './components/ResultsPanel';
 import { LibraryPanel } from './components/LibraryPanel';
+import { InteractiveField } from './components/InteractiveField';
 
 export default function App() {
   const [plan, setPlan] = useState<Plan>(() => loadPlan() ?? samplePlan());
   const [stepTemplates, setStepTemplates] = useState(loadStepTemplates);
   const [planTemplates, setPlanTemplates] = useState(loadPlanTemplates);
+  const [selectedStepId, setSelectedStepId] = useState<string>();
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => savePlan(plan), [plan]);
   useEffect(() => saveStepTemplates(stepTemplates), [stepTemplates]);
   useEffect(() => savePlanTemplates(planTemplates), [planTemplates]);
   const result = useMemo(() => solvePlan(plan), [plan]);
+  const selectedStep = plan.steps.find((step) => step.id === selectedStepId);
+
+  useEffect(() => {
+    if (selectedStepId && !selectedStep) setSelectedStepId(undefined);
+  }, [selectedStep, selectedStepId]);
 
   function saveStepAsTemplate(step: ProcessStep) {
     const name = prompt('Template name:', step.name || 'Unnamed step');
@@ -33,14 +40,51 @@ export default function App() {
     setStepTemplates([...stepTemplates, stepToTemplate(step, plan, name)]);
   }
 
-  function addStep() {
+  function addStepAt(x: number, y: number) {
     if (plan.resources.length === 0) return;
+    const step = {
+      id: newId(),
+      name: '',
+      inputs: [],
+      outputs: [{ resourceId: plan.resources[0].id, amount: 1 }],
+      position: { x, y },
+    };
+    setPlan({ ...plan, steps: [...plan.steps, step] });
+    setSelectedStepId(step.id);
+  }
+
+  function moveStep(stepId: string, x: number, y: number) {
     setPlan({
       ...plan,
-      steps: [
-        ...plan.steps,
-        { id: newId(), name: '', inputs: [], outputs: [{ resourceId: plan.resources[0].id, amount: 1 }] },
-      ],
+      steps: plan.steps.map((step) =>
+        step.id === stepId ? { ...step, position: { x, y } } : step,
+      ),
+    });
+  }
+
+  function connectSteps(
+    sourceStepId: string,
+    sourceKind: 'input' | 'output',
+    resourceId: string,
+    targetStepId: string,
+  ) {
+    if (sourceStepId === targetStepId) return;
+    const targetKind = sourceKind === 'output' ? 'inputs' : 'outputs';
+    setPlan({
+      ...plan,
+      steps: plan.steps.map((step) => {
+        if (step.id !== targetStepId) return step;
+        const amounts = step[targetKind];
+        const existing = amounts.find((amount) => amount.resourceId === resourceId);
+        const nextAmounts = existing
+          ? amounts.map((amount) =>
+              amount.resourceId === resourceId
+                ? { ...amount, amount: amount.amount + 1 }
+                : amount,
+            )
+          : [...amounts, { resourceId, amount: 1 }];
+        return { ...step, [targetKind]: nextAmounts };
+      }),
     });
   }
 
@@ -106,23 +150,39 @@ export default function App() {
           />
         </div>
 
-        <section className="panel steps-panel">
-          <h2>Process steps</h2>
-          <button type="button" className="add-step" onClick={addStep} disabled={plan.resources.length === 0}>
-            + Add step
-          </button>
-          {plan.resources.length === 0 && (
-            <p className="empty-hint">Add a resource first, then steps can use it.</p>
-          )}
-          {plan.steps.map((s) => (
-            <StepCard key={s.id} plan={plan} step={s} onChange={setPlan} onSaveTemplate={saveStepAsTemplate} />
-          ))}
-          {plan.steps.length === 0 && plan.resources.length > 0 && (
-            <p className="empty-hint">No steps yet — add one to turn resources into other resources.</p>
-          )}
-        </section>
+        <InteractiveField
+          plan={plan}
+          selectedStepId={selectedStepId}
+          onSelect={setSelectedStepId}
+          onMove={moveStep}
+          onAddStep={addStepAt}
+          onConnect={connectSteps}
+        />
 
-        <ResultsPanel plan={plan} result={result} onChange={setPlan} />
+        <aside className="right-col">
+          {selectedStep ? (
+            <section className="panel selected-step-panel">
+              <div className="sidebar-heading">
+                <h2>Selected step</h2>
+                <button type="button" className="icon" onClick={() => setSelectedStepId(undefined)}>
+                  ×
+                </button>
+              </div>
+              <StepCard
+                plan={plan}
+                step={selectedStep}
+                onChange={setPlan}
+                onSaveTemplate={saveStepAsTemplate}
+              />
+            </section>
+          ) : (
+            <section className="panel selection-empty">
+              <h2>Selected step</h2>
+              <p>Click a step in the field to edit its inputs, outputs, name, and timing.</p>
+            </section>
+          )}
+          <ResultsPanel plan={plan} result={result} onChange={setPlan} />
+        </aside>
       </main>
     </div>
   );
