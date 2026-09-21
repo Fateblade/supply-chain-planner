@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { DragEvent, MouseEvent } from 'react';
 import type { Plan, PortKind, ProcessStep, StepLink } from '../model/types';
 
@@ -83,15 +84,18 @@ function StepNode({
   onConnect: Props['onConnect'];
 }) {
   const position = step.position ?? defaultPosition(index);
+  const nodeDragStarted = useRef(false);
 
   function startDrag(event: DragEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) return;
+    nodeDragStarted.current = true;
     event.dataTransfer.setData('application/json', JSON.stringify({ type: 'step', stepId: step.id }));
     event.dataTransfer.effectAllowed = 'move';
   }
 
   function finishDrag(event: DragEvent<HTMLDivElement>) {
-    const payload = dragPayload(event);
-    if (payload?.type !== 'step') return;
+    if (!nodeDragStarted.current) return;
+    nodeDragStarted.current = false;
     const field = event.currentTarget.parentElement;
     if (!field) return;
     const bounds = field.getBoundingClientRect();
@@ -108,6 +112,7 @@ function StepNode({
     resourceId: string,
   ) {
     event.stopPropagation();
+    nodeDragStarted.current = false;
     event.dataTransfer.setData(
       'application/json',
       JSON.stringify({ type: 'resource', stepId: step.id, kind, index, resourceId }),
