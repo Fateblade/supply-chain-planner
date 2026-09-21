@@ -149,7 +149,10 @@ function StepNode({
         key={`${resourceId}-${index}`}
         draggable
         onDragStart={(event) => startHandleDrag(event, kind, index, resourceId)}
-        onDragOver={(event) => event.preventDefault()}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+        }}
         onDrop={(event) => connectToTarget(event, kind, index)}
         title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect`}
       >
@@ -167,7 +170,10 @@ function StepNode({
       onClick={onSelect}
       onDragStart={startDrag}
       onDragEnd={finishDrag}
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      }}
       onDrop={(event) => {
         const payload = dragPayload(event);
         if (payload?.type === 'resource') {
