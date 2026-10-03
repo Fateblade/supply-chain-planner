@@ -35,6 +35,16 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 - Whole plans can be saved and loaded as named plan templates.
 - Templates persist in localStorage.
 
+### Workspaces and plans
+
+- Users can create and switch between named workspaces.
+- Each workspace owns a separate resource catalog, step-template library, and plan-template library.
+- All plans in a workspace share that workspace's resource catalog.
+- A workspace can contain multiple named plans; users can create, select/load, save, rename, and delete them.
+- Plans keep their own steps, targets, and links. The workspace's resource catalog is authoritative and is combined with the active plan for calculations and editing.
+- Workspaces and plans persist in browser localStorage.
+- On upgrade, the current saved plan and both existing template libraries migrate into the initial **Game: Spacecraft** workspace.
+
 ### Interactive field
 
 - The application uses a dark theme by default.
@@ -59,6 +69,8 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 
 - **Delivery:** Vite + React + TypeScript single-page application.
 - **Backend:** None for the current product; browser localStorage is the persistence layer.
+- **Workspace model:** resources and both template libraries belong to a workspace; its plans share that workspace resource catalog and each retain their own production steps, targets, and links.
+- **Upgrade migration:** the existing single plan and template libraries migrate into the initial “Game: Spacecraft” workspace.
 - **Calculation model:** demand-driven, non-negative least-squares calculation. Target demand is prioritized and shortages are reported rather than hidden.
 - **Target semantics:** a target without a time frame is a one-off amount; a target with a time frame is a production rate.
 - **Link model:** links connect specific indexed ports, not just resources or whole steps. This supports multiple inputs and outputs using the same resource.
@@ -72,6 +84,9 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 
 ### 2026-09-21
 
+- Added named workspaces with workspace-specific resources and libraries.
+- Added multiple named plans per workspace with create, save, load, rename, and delete controls.
+- Migrated the pre-workspace saved plan and libraries into the initial “Game: Spacecraft” workspace.
 - Added persistent links between indexed input/output ports.
 - Added SVG link rendering that follows moved nodes.
 - Changed newly created field steps to start with no inputs or outputs.

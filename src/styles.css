@@ -32,10 +32,39 @@ body {
 header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
+}
+.app-header {
+  flex-wrap: wrap;
+}
+.workspace-controls,
+.plan-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.workspace-controls label,
+.plan-controls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.workspace-controls select {
+  max-width: 165px;
+}
+.plan-controls select {
+  max-width: 190px;
+}
+.workspace-controls button,
+.plan-controls button,
+.header-actions button {
+  padding-inline: 8px;
+  white-space: nowrap;
 }
 
 .plan-name {
@@ -83,6 +112,20 @@ main {
 }
 
 @media (max-width: 760px) {
+  .app-header {
+    align-items: stretch;
+  }
+  .workspace-controls,
+  .plan-controls,
+  .header-actions {
+    flex-wrap: wrap;
+  }
+  .plan-name {
+    flex: 1 1 100%;
+  }
+  .header-actions {
+    margin-left: 0;
+  }
   main {
     grid-template-columns: 1fr;
   }

@@ -44,6 +44,7 @@ export function ResourcePanel({ plan, onChange }: Props) {
   }
 
   function remove(rid: string) {
+    if (!confirm('Delete this workspace resource? It will be removed from every plan in this workspace that uses it.')) return;
     const withoutResource = removeResourceAndLinks(plan, rid);
     onChange({
       ...withoutResource,
