@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { Plan, ProcessStep, ResourceAmount } from '../model/types';
 import { removePortAndLinks, removeStepAndLinks } from '../model/links';
 import { newId } from '../model/types';
@@ -13,6 +14,15 @@ interface Props {
 
 /** One process step card: name, input rows, output rows, duplicate/delete. */
 export function StepCard({ plan, step, onChange, onSaveTemplate, ask }: Props) {
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  // A freshly created (or still unnamed) step gets the cursor in its name
+  // field right away; Enter confirms and leaves the field.
+  useEffect(() => {
+    if (!step.name) nameRef.current?.focus();
+    // Mount-only: the card is keyed by step id, so each selection remounts it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function patchStep(patch: Partial<ProcessStep>) {
     onChange({
       ...plan,
@@ -110,10 +120,14 @@ export function StepCard({ plan, step, onChange, onSaveTemplate, ask }: Props) {
     <div className="step-card">
       <div className="step-head">
         <input
+          ref={nameRef}
           className="step-name"
           value={step.name}
           placeholder="Step name"
           onChange={(e) => patchStep({ name: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
         />
         <button
           type="button"
