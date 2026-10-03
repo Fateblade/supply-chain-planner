@@ -326,9 +326,9 @@ export default function App() {
             <section className="panel selected-step-panel">
               <div className="sidebar-heading">
                 <h2>Selected step</h2>
-                <button type="button" className="icon" onClick={clearSelection}>×</button>
+                <button type="button" className="bare" title="Deselect step" onClick={clearSelection}>×</button>
               </div>
-              <StepCard plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} />
+              <StepCard plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} ask={ask} />
             </section>
           ) : (
             <section className="panel selection-empty">

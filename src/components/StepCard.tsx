@@ -1,16 +1,18 @@
 import type { Plan, ProcessStep, ResourceAmount } from '../model/types';
 import { removePortAndLinks, removeStepAndLinks } from '../model/links';
 import { newId } from '../model/types';
+import type { Ask } from './Modal';
 
 interface Props {
   plan: Plan;
   step: ProcessStep;
   onChange: (plan: Plan) => void;
   onSaveTemplate: (step: ProcessStep) => void;
+  ask: Ask;
 }
 
 /** One process step card: name, input rows, output rows, duplicate/delete. */
-export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
+export function StepCard({ plan, step, onChange, onSaveTemplate, ask }: Props) {
   function patchStep(patch: Partial<ProcessStep>) {
     onChange({
       ...plan,
@@ -51,7 +53,14 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
   }
 
   function remove() {
-    onChange(removeStepAndLinks(plan, step.id));
+    ask({
+      kind: 'confirm',
+      title: 'Delete step',
+      message: `Delete step “${step.name || 'Unnamed step'}”? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: () => onChange(removeStepAndLinks(plan, step.id)),
+    });
   }
 
   function renderRows(kind: 'inputs' | 'outputs') {
@@ -133,8 +142,8 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
           <button type="button" className="icon" title="Duplicate step" onClick={duplicate}>
             ⧉
           </button>
-          <button type="button" className="icon danger bare" title="Delete step" onClick={remove}>
-            ×
+          <button type="button" className="icon danger" title="Delete step" onClick={remove}>
+            D
           </button>
         </div>
       </div>
