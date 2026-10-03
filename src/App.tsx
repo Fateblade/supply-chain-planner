@@ -6,6 +6,7 @@ import { solvePlan } from './model/solver';
 import { samplePlan } from './model/sample';
 import { stepToTemplate } from './model/templates';
 import {
+  activeSavedPlan,
   activeWorkspace,
   createWorkspace,
   savePlanSnapshot,
@@ -37,6 +38,13 @@ export default function App() {
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState>(loadWorkspaceState);
   const [panelExpanded, setPanelExpanded] = useState(false);
   const [dialog, setDialog] = useState<DialogRequest | null>(null);
+  const dialogKey = useRef(0);
+
+  /** Open a modal dialog; the key forces a fresh Modal instance per request. */
+  function ask(request: DialogRequest) {
+    dialogKey.current += 1;
+    setDialog(request);
+  }
   const [selectedStepId, setSelectedStepId] = useState<string>();
   const fileInput = useRef<HTMLInputElement>(null);
   const workspace = activeWorkspace(workspaceState);
@@ -98,31 +106,34 @@ export default function App() {
 
   function deleteWorkspace() {
     if (workspaceState.workspaces.length <= 1) {
-      setDialog({
+      ask({
         kind: 'confirm',
         title: 'Cannot delete workspace',
         message: 'Keep at least one workspace.',
         confirmLabel: 'OK',
+        info: true,
         onConfirm: () => undefined,
       });
       return;
     }
-    setDialog({
+    ask({
       kind: 'confirm',
       title: 'Delete workspace',
       message: `Delete workspace “${workspace.name}” and all its plans and libraries? This cannot be undone.`,
       confirmLabel: 'Delete',
       danger: true,
       onConfirm: () => {
-        const remaining = workspaceState.workspaces.filter((item) => item.id !== workspace.id);
-        setWorkspaceState({ ...workspaceState, workspaces: remaining, activeWorkspaceId: remaining[0].id });
+        setWorkspaceState((state) => {
+          const remaining = state.workspaces.filter((item) => item.id !== workspace.id);
+          return { ...state, workspaces: remaining, activeWorkspaceId: remaining[0].id };
+        });
         setSelectedStepId(undefined);
       },
     });
   }
 
   function createPlan() {
-    setDialog({
+    ask({
       kind: 'prompt',
       title: 'New plan',
       label: 'Plan name',
@@ -143,7 +154,7 @@ export default function App() {
   }
 
   function renamePlan() {
-    setDialog({
+    ask({
       kind: 'prompt',
       title: 'Rename plan',
       label: 'Plan name',
@@ -155,16 +166,17 @@ export default function App() {
 
   function deletePlan() {
     if (workspace.plans.length <= 1) {
-      setDialog({
+      ask({
         kind: 'confirm',
         title: 'Cannot delete plan',
         message: 'Keep at least one plan in each workspace.',
         confirmLabel: 'OK',
+        info: true,
         onConfirm: () => undefined,
       });
       return;
     }
-    setDialog({
+    ask({
       kind: 'confirm',
       title: 'Delete plan',
       message: `Delete plan “${plan.name || 'Unnamed plan'}”? This cannot be undone.`,
@@ -181,7 +193,7 @@ export default function App() {
   }
 
   function saveStepAsTemplate(step: ProcessStep) {
-    setDialog({
+    ask({
       kind: 'prompt',
       title: 'Save step template',
       label: 'Template name',
@@ -252,12 +264,19 @@ export default function App() {
         resources: mergeResources(workspace.resources, parsed.resources),
       });
     } catch {
-      alert('Could not import: not a valid plan file.');
+      ask({
+        kind: 'confirm',
+        title: 'Import failed',
+        message: 'Could not import: not a valid plan file.',
+        confirmLabel: 'OK',
+        info: true,
+        onConfirm: () => undefined,
+      });
     }
   }
 
   function resetToSample() {
-    setDialog({
+    ask({
       kind: 'confirm',
       title: 'Replace plan',
       message: 'Replace the current plan with the sample plan?',
@@ -267,12 +286,12 @@ export default function App() {
     });
   }
 
-  const activeSaved: SavedWorkspacePlan | undefined = workspace.plans.find((saved) => saved.id === workspace.activePlanId);
+  const activeSaved: SavedWorkspacePlan | undefined = activeSavedPlan(workspace);
 
   return (
     <div className="app">
       <header className="app-header">
-        <span className="header-title" title="Active workspace : selected plan">
+        <span className="header-title">
           {workspace.name}: {plan.name || 'Unnamed plan'}
         </span>
         <div className="header-actions">
@@ -305,7 +324,7 @@ export default function App() {
             onRenamePlan={renamePlan}
             onDeletePlan={deletePlan}
           />
-          <ResourcePanel plan={plan} onChange={updatePlan} />
+          <ResourcePanel plan={plan} onChange={updatePlan} ask={ask} />
           <LibraryPanel
             plan={plan}
             stepTemplates={workspace.stepTemplates}
@@ -313,6 +332,7 @@ export default function App() {
             onChange={(nextPlan) => updatePlan({ ...nextPlan, resources: mergeResources(workspace.resources, nextPlan.resources) })}
             onStepTemplates={(templates) => updateActiveWorkspace((current) => ({ ...current, stepTemplates: templates }))}
             onPlanTemplates={(templates) => updateActiveWorkspace((current) => ({ ...current, planTemplates: templates }))}
+            ask={ask}
           />
         </div>
         <InteractiveField
@@ -342,7 +362,7 @@ export default function App() {
         </aside>
       </main>
 
-      {dialog && <Modal request={dialog} onClose={() => setDialog(null)} />}
+      {dialog && <Modal key={dialogKey.current} request={dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }

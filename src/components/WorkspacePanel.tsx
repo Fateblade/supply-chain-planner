@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface PlanEntry {
   id: string;
@@ -40,13 +40,30 @@ export function WorkspacePanel({
   onRenamePlan,
   onDeletePlan,
 }: Props) {
+  const stripRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLButtonElement>(null);
+  const mounted = useRef(false);
+
+  // Keep keyboard focus on the visible toggle when the panel expands/collapses.
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    (expanded ? titleRef.current : stripRef.current)?.focus();
+  }, [expanded]);
+
   if (!expanded) {
     return (
       <button
+        ref={stripRef}
         type="button"
         className="workspace-strip"
         onClick={onToggle}
         title="Expand workspaces and plans"
+        aria-label="Expand workspaces and plans"
+        aria-expanded="false"
+        aria-controls="workspace-panel-body"
       >
         <span className="strip-label">Workspaces</span>
         <span className="strip-indicator">›</span>
@@ -56,8 +73,17 @@ export function WorkspacePanel({
   }
 
   return (
-    <section className="workspace-panel">
-      <button type="button" className="panel-title" onClick={onToggle} title="Collapse panel (‹)">
+    <section className="workspace-panel" id="workspace-panel-body">
+      <button
+        ref={titleRef}
+        type="button"
+        className="panel-title"
+        onClick={onToggle}
+        title="Collapse panel (‹)"
+        aria-label="Collapse workspaces panel"
+        aria-expanded="true"
+        aria-controls="workspace-panel-body"
+      >
         <span>Workspaces</span>
         <span className="collapse-hint" aria-hidden="true">‹</span>
       </button>
@@ -76,10 +102,10 @@ export function WorkspacePanel({
         </select>
         <button type="button" className="icon" onClick={onNewWorkspace} title="New workspace">+</button>
         <button type="button" className="icon" onClick={onRenameWorkspace} title="Rename workspace">R</button>
-        <button type="button" className="icon danger" onClick={onDeleteWorkspace} title="Delete workspace (asks to confirm)">D</button>
+        <button type="button" className="icon danger" onClick={onDeleteWorkspace} title="Delete workspace">D</button>
       </div>
 
-      <div className="panel-splitter" role="separator" />
+      <div className="panel-splitter" aria-hidden="true" />
 
       <h3 className="plans-title">Plans</h3>
 
@@ -90,10 +116,7 @@ export function WorkspacePanel({
               type="button"
               className={`plan-item ${plan.id === selectedPlanId ? 'selected' : ''}`}
               title={`Open plan “${plan.name || 'Unnamed plan'}”`}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onSelectPlan(plan.id);
-              }}
+              onClick={() => onSelectPlan(plan.id)}
             >
               {plan.name || 'Unnamed plan'}
             </button>
@@ -104,7 +127,7 @@ export function WorkspacePanel({
       <div className="panel-row bottom">
         <button type="button" className="icon" onClick={onNewPlan} title="New plan">+</button>
         <button type="button" className="icon" onClick={onRenamePlan} title="Rename selected plan">R</button>
-        <button type="button" className="icon danger" onClick={onDeletePlan} title="Delete selected plan (asks to confirm)">D</button>
+        <button type="button" className="icon danger" onClick={onDeletePlan} title="Delete selected plan">D</button>
       </div>
     </section>
   );

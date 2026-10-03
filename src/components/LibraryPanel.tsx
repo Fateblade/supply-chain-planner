@@ -2,6 +2,7 @@ import type { Plan } from '../model/types';
 import type { PlanTemplate, StepTemplate, TemplateAmount } from '../model/templates';
 import { instantiatePlanTemplate, instantiateStepTemplate } from '../model/templates';
 import { newId } from '../model/types';
+import type { DialogRequest } from './Modal';
 
 /** Tooltip describing what a step template consumes and produces. */
 function templateSummary(t: StepTemplate): string {
@@ -40,6 +41,7 @@ interface Props {
   onChange: (plan: Plan) => void;
   onStepTemplates: (t: StepTemplate[]) => void;
   onPlanTemplates: (t: PlanTemplate[]) => void;
+  ask: (request: DialogRequest) => void;
 }
 
 /** Reusable building blocks: step templates (insert into any plan) and plan
@@ -51,20 +53,33 @@ export function LibraryPanel({
   onChange,
   onStepTemplates,
   onPlanTemplates,
+  ask,
 }: Props) {
   function saveCurrentPlan() {
-    const name = prompt('Plan template name:', plan.name);
-    if (name === null) return;
-    onPlanTemplates([
-      ...planTemplates,
-      { id: newId(), name: name.trim() || plan.name || 'Unnamed plan', plan: structuredClone(plan) },
-    ]);
+    ask({
+      kind: 'prompt',
+      title: 'Save plan template',
+      label: 'Template name',
+      initial: plan.name,
+      confirmLabel: 'Save',
+      onConfirm: (value) => {
+        onPlanTemplates([
+          ...planTemplates,
+          { id: newId(), name: value.trim() || plan.name || 'Unnamed plan', plan: structuredClone(plan) },
+        ]);
+      },
+    });
   }
 
   function loadPlanTemplate(tpl: PlanTemplate) {
-    if (confirm(`Replace the current plan with "${tpl.name}"?`)) {
-      onChange(instantiatePlanTemplate(tpl));
-    }
+    ask({
+      kind: 'confirm',
+      title: 'Load plan template',
+      message: `Replace the current plan with "${tpl.name}"?`,
+      confirmLabel: 'Replace',
+      danger: true,
+      onConfirm: () => onChange(instantiatePlanTemplate(tpl)),
+    });
   }
 
   return (

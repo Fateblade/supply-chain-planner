@@ -27,6 +27,7 @@ body {
 
 .app {
   height: 100vh;
+  height: 100dvh; /* match the visible viewport on mobile browsers with dynamic chrome */
   display: flex;
   flex-direction: column;
   position: relative;
@@ -36,6 +37,8 @@ body {
 }
 
 header {
+  position: relative;
+  z-index: 50; /* keep the header title visible above the expanded sidepanel overlay */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -169,9 +172,6 @@ header {
   overflow-y: auto;
   scrollbar-width: thin;
 }
-.workspace-panel .plan-list:not(:has(.plan-item)) {
-  flex: 0;
-}
 .workspace-panel .plan-item {
   display: block;
   width: 100%;
@@ -268,6 +268,9 @@ main {
 }
 
 @media (max-width: 1200px) {
+  :root {
+    --sidepanel-w: 288px; /* 48px strip + 240px left column at this breakpoint */
+  }
   main {
     grid-template-columns: 240px minmax(420px, 1fr);
   }
@@ -426,15 +429,6 @@ select:focus {
   color: var(--warn);
   font-size: 13px;
   margin: 10px 0 0;
-}
-
-.steps-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.add-step {
-  align-self: flex-start;
 }
 
 .step-card {

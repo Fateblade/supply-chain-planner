@@ -2,14 +2,16 @@ import { useState } from 'react';
 import type { Plan, Resource } from '../model/types';
 import { removeResourceAndLinks } from '../model/links';
 import { newId } from '../model/types';
+import type { DialogRequest } from './Modal';
 
 interface Props {
   plan: Plan;
   onChange: (plan: Plan) => void;
+  ask: (request: DialogRequest) => void;
 }
 
 /** Left panel: add/rename resources, toggle raw (external) and target (final). */
-export function ResourcePanel({ plan, onChange }: Props) {
+export function ResourcePanel({ plan, onChange, ask }: Props) {
   const [draft, setDraft] = useState('');
 
   const targetIds = new Set(plan.targets.map((t) => t.resourceId));
@@ -44,12 +46,20 @@ export function ResourcePanel({ plan, onChange }: Props) {
   }
 
   function remove(rid: string) {
-    if (!confirm('Delete this workspace resource? It will be removed from every plan in this workspace that uses it.')) return;
-    const withoutResource = removeResourceAndLinks(plan, rid);
-    onChange({
-      ...withoutResource,
-      resources: withoutResource.resources.filter((resource) => resource.id !== rid),
-      targets: withoutResource.targets.filter((target) => target.resourceId !== rid),
+    ask({
+      kind: 'confirm',
+      title: 'Delete resource',
+      message: 'Delete this workspace resource? It will be removed from every plan in this workspace that uses it.',
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: () => {
+        const withoutResource = removeResourceAndLinks(plan, rid);
+        onChange({
+          ...withoutResource,
+          resources: withoutResource.resources.filter((resource) => resource.id !== rid),
+          targets: withoutResource.targets.filter((target) => target.resourceId !== rid),
+        });
+      },
     });
   }
 

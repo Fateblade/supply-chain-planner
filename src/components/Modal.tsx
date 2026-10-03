@@ -16,6 +16,8 @@ export type DialogRequest =
       message: string;
       confirmLabel?: string;
       danger?: boolean;
+      /** Informational dialog: renders a single dismiss button, no Cancel. */
+      info?: boolean;
       onConfirm: () => void;
     };
 
@@ -24,14 +26,19 @@ interface Props {
   onClose: () => void;
 }
 
-/** In-app modal dialog used instead of native prompt/confirm. */
+/** In-app modal dialog used instead of native prompt/confirm.
+ *  Moves focus into the dialog, traps Tab, restores focus on close. */
 export function Modal({ request, onClose }: Props) {
   const [value, setValue] = useState(request.kind === 'prompt' ? (request.initial ?? '') : '');
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (request.kind === 'prompt') inputRef.current?.select();
+    else dialogRef.current?.focus();
+    return () => previous?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function confirmRequest() {
@@ -45,7 +52,27 @@ export function Modal({ request, onClose }: Props) {
   }
 
   function handleKey(event: KeyboardEvent) {
-    if (event.key === 'Escape') onClose();
+    if (event.key === 'Escape') {
+      onClose();
+      return;
+    }
+    if (event.key === 'Tab') {
+      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables || focusables.length === 0) return;
+      const list = Array.from(focusables);
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
   }
 
   function stopPropagation(event: MouseEvent) {
@@ -54,15 +81,18 @@ export function Modal({ request, onClose }: Props) {
 
   const confirmLabel = request.confirmLabel ?? (request.kind === 'prompt' ? 'OK' : 'Confirm');
   const danger = request.kind === 'confirm' && request.danger === true;
+  const info = request.kind === 'confirm' && request.info === true;
   const disableConfirm = request.kind === 'prompt' && !value.trim();
 
   return (
     <div className="modal-backdrop" onMouseDown={onClose} onKeyDown={handleKey}>
       <div
+        ref={dialogRef}
         className="modal"
         role="dialog"
         aria-modal="true"
         aria-label={request.title}
+        tabIndex={-1}
         onMouseDown={stopPropagation}
       >
         <h2>{request.title}</h2>
@@ -78,7 +108,7 @@ export function Modal({ request, onClose }: Props) {
             />
           )}
           <div className="modal-actions">
-            <button type="button" onClick={onClose}>Cancel</button>
+            {!info && <button type="button" onClick={onClose}>Cancel</button>}
             <button type="submit" className={danger ? 'danger' : ''} disabled={disableConfirm}>
               {confirmLabel}
             </button>
