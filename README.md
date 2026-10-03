@@ -13,6 +13,21 @@ npm test        # solver unit tests
 npm run build   # production bundle in dist/
 ```
 
+## Docker
+
+Build and run the containerized app (multi-stage build: Node builds the
+bundle, nginx serves it):
+
+```sh
+docker build -t supply-chain-planner .
+docker run -p 8080:80 supply-chain-planner
+```
+
+Then open http://localhost:8080. The nginx config (`nginx.conf`) handles the
+SPA fallback and long-lived caching for hashed assets. Note: plans autosave
+to the browser's localStorage, so they are per-browser, not per-container —
+container data is stateless.
+
 ## How to use (P1)
 
 1. **Add resources** (left panel). Toggle **raw** for things supplied from
