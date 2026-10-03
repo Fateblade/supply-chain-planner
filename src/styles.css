@@ -108,13 +108,35 @@ header {
   box-shadow: 12px 0 28px rgb(0 0 0 / 30%);
   overflow-y: auto;
 }
-.workspace-panel .panel-head {
+.workspace-panel .panel-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
 }
-.workspace-panel .panel-head h2 {
-  margin: 0;
+.workspace-panel .panel-title:hover {
+  color: var(--accent);
+  background: var(--panel-raised);
+}
+.workspace-panel .panel-title .collapse-hint {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 15px;
+}
+.workspace-panel .panel-title:hover .collapse-hint {
+  color: var(--accent);
 }
 .workspace-panel .panel-row {
   display: flex;
@@ -128,6 +150,12 @@ header {
 .workspace-panel .panel-splitter {
   border-top: 1px solid var(--border);
   margin-block: 10px;
+}
+.workspace-panel .plans-title {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 13px;
 }
 .workspace-panel .plan-list {
   list-style: none;

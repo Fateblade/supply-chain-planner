@@ -57,12 +57,10 @@ export function WorkspacePanel({
 
   return (
     <section className="workspace-panel">
-      <div className="panel-head">
-        <h2>Workspaces</h2>
-        <button type="button" className="icon" onClick={onToggle} title="Collapse panel (‹)">
-          ‹
-        </button>
-      </div>
+      <button type="button" className="panel-title" onClick={onToggle} title="Collapse panel (‹)">
+        <span>Workspaces</span>
+        <span className="collapse-hint" aria-hidden="true">‹</span>
+      </button>
       <div className="panel-row">
         <select
           value={selectedWorkspaceId}
@@ -82,6 +80,8 @@ export function WorkspacePanel({
       </div>
 
       <div className="panel-splitter" role="separator" />
+
+      <h3 className="plans-title">Plans</h3>
 
       <ul className="plan-list">
         {plans.map((plan) => (
