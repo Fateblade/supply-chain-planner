@@ -20,6 +20,9 @@ bundle, nginx serves it):
 
 ```sh
 docker build -t supply-chain-planner .
+```
+
+```sh
 docker run -p 8080:80 supply-chain-planner
 ```
 
