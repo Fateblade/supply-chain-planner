@@ -122,10 +122,6 @@ export default function App() {
   }
 
   function deleteWorkspace() {
-    if (workspaceState.workspaces.length <= 1) {
-      askInfo('Cannot delete workspace', 'Keep at least one workspace.');
-      return;
-    }
     askConfirm(
       {
         title: 'Delete workspace',
@@ -167,10 +163,6 @@ export default function App() {
   }
 
   function deletePlan() {
-    if (workspace.plans.length <= 1) {
-      askInfo('Cannot delete plan', 'Keep at least one plan in each workspace.');
-      return;
-    }
     askConfirm(
       {
         title: 'Delete plan',
@@ -299,10 +291,14 @@ export default function App() {
         onNewWorkspace={createNewWorkspace}
         onRenameWorkspace={renameWorkspace}
         onDeleteWorkspace={deleteWorkspace}
+        deleteWorkspaceReason={
+          workspaceState.workspaces.length <= 1 ? 'Cannot delete the last workspace.' : undefined
+        }
         onSelectPlan={selectPlan}
         onNewPlan={createPlan}
         onRenamePlan={renamePlan}
         onDeletePlan={deletePlan}
+        deletePlanReason={workspace.plans.length <= 1 ? 'Cannot delete the last plan in a workspace.' : undefined}
       />
       <main>
         <div className="left-col">
