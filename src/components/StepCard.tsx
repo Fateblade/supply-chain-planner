@@ -9,13 +9,11 @@ interface Props {
   step: ProcessStep;
   onChange: (plan: Plan) => void;
   onSaveTemplate: (step: ProcessStep) => void;
-  /** Double-click a needed input: create a step that makes that resource. */
-  onCreateProducer: (resourceId: string) => void;
   ask: Ask;
 }
 
 /** One process step card: name, input rows, output rows, duplicate/delete. */
-export function StepCard({ plan, step, onChange, onSaveTemplate, onCreateProducer, ask }: Props) {
+export function StepCard({ plan, step, onChange, onSaveTemplate, ask }: Props) {
   const nameRef = useRef<HTMLInputElement>(null);
 
   // A freshly created (or still unnamed) step gets the cursor in its name
@@ -94,14 +92,6 @@ export function StepCard({ plan, step, onChange, onSaveTemplate, onCreateProduce
             <select
               value={a.resourceId}
               onChange={(e) => patchAmount(kind, i, { resourceId: e.target.value })}
-              onDoubleClick={
-                kind === 'inputs' ? () => onCreateProducer(a.resourceId) : undefined
-              }
-              title={
-                kind === 'inputs'
-                  ? 'Double-click to create a step that makes this'
-                  : undefined
-              }
             >
               {plan.resources.map((r) => (
                 <option key={r.id} value={r.id}>

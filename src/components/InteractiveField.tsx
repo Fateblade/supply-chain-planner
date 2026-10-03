@@ -8,6 +8,8 @@ interface Props {
   onSelect: (stepId: string) => void;
   onMove: (stepId: string, x: number, y: number) => void;
   onAddStep: (x: number, y: number) => void;
+  /** Double-click a step's input handle: create a step that makes that resource. */
+  onCreateProducer: (resourceId: string) => void;
   onConnect: (
     sourceStepId: string,
     sourceKind: PortKind,
@@ -74,6 +76,7 @@ function StepNode({
   onSelect,
   onMove,
   onConnect,
+  onCreateProducer,
 }: {
   plan: Plan;
   step: ProcessStep;
@@ -82,6 +85,7 @@ function StepNode({
   onSelect: () => void;
   onMove: (x: number, y: number) => void;
   onConnect: Props['onConnect'];
+  onCreateProducer: Props['onCreateProducer'];
 }) {
   const position = step.position ?? defaultPosition(index);
   const nodeDragStarted = useRef(false);
@@ -154,7 +158,10 @@ function StepNode({
           event.dataTransfer.dropEffect = 'copy';
         }}
         onDrop={(event) => connectToTarget(event, kind, index)}
-        title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect`}
+        onDoubleClick={isInput ? () => onCreateProducer(resourceId) : undefined}
+        title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect${
+          isInput ? ' · double-click to create a step that makes this' : ''
+        }`}
       >
         {isInput ? <span>{resourceName(plan, resourceId)}</span> : <b>{resourceName(plan, resourceId)}</b>}
         <b>{isInput ? step.inputs[index].amount : step.outputs[index].amount}</b>
@@ -221,6 +228,7 @@ export function InteractiveField({
   onMove,
   onAddStep,
   onConnect,
+  onCreateProducer,
 }: Props) {
   function addOnDoubleClick(event: MouseEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return;
@@ -250,6 +258,7 @@ export function InteractiveField({
               onSelect={() => onSelect(step.id)}
               onMove={(x, y) => onMove(step.id, x, y)}
               onConnect={onConnect}
+              onCreateProducer={onCreateProducer}
             />
           ))}
           {plan.steps.length === 0 && (

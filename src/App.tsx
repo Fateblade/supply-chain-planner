@@ -335,6 +335,7 @@ export default function App() {
           onSelect={setSelectedStepId}
           onMove={moveStep}
           onAddStep={addStepAt}
+          onCreateProducer={createProducer}
           onConnect={connectSteps}
         />
         <aside className="right-col">
@@ -344,7 +345,7 @@ export default function App() {
                 <h2>Selected step</h2>
                 <button type="button" className="bare" title="Deselect step" onClick={clearSelection}>×</button>
               </div>
-              <StepCard key={selectedStep.id} plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} onCreateProducer={createProducer} ask={ask} />
+              <StepCard key={selectedStep.id} plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} ask={ask} />
             </section>
           ) : (
             <section className="panel selection-empty">
