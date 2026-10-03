@@ -32,8 +32,8 @@ body {
   flex-direction: column;
   position: relative;
   overflow: hidden; /* no page scroll; inner panels scroll instead */
-  /* Left margin so header and content align next to the collapsed strip overlay */
-  padding-left: var(--strip-w);
+  /* No padding here: the sidepanel overlay must anchor to the app body's true left
+     edge (absolute children resolve against the containing block's padding box). */
 }
 
 /* Positioned wrapper below the header: the sidepanel strip/panel overlay anchors here,
@@ -50,7 +50,9 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  /* Indent content past the collapsed strip; the panel background stays full-width */
+  padding-left: calc(var(--strip-w) + 16px);
+  padding-right: 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
 }
@@ -266,6 +268,7 @@ main {
   align-items: stretch;
   flex: 1;
   min-height: 0; /* let columns shrink so inner panels scroll, not the page */
+  margin-left: var(--strip-w); /* content aligned next to the collapsed strip */
 }
 
 @media (max-width: 1200px) {
