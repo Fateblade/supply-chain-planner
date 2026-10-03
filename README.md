@@ -4,16 +4,25 @@ A fast, single-screen tool for planning production chains: define resources,
 define process steps that turn inputs into outputs, mark what you want as
 final — and get exactly how often every step must run.
 
-## Run it
+## Run it locally
 
 ```sh
 npm install
+```
+
+```sh
 npm run dev     # http://localhost:5173
+```
+
+```sh
 npm test        # solver unit tests
+```
+
+```sh
 npm run build   # production bundle in dist/
 ```
 
-## Docker
+## Run it in Docker
 
 Build and run the containerized app (multi-stage build: Node builds the
 bundle, nginx serves it):
