@@ -106,6 +106,16 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
           placeholder="Step name"
           onChange={(e) => patchStep({ name: e.target.value })}
         />
+        <button
+          type="button"
+          className="icon"
+          title="Save as reusable template (appears in the Library)"
+          onClick={() => onSaveTemplate(step)}
+        >
+          ☆
+        </button>
+      </div>
+      <div className="step-controls">
         <input
           className="duration"
           type="number"
@@ -119,24 +129,18 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
             patchStep({ durationSeconds: v });
           }}
         />
-        <button
-          type="button"
-          className="icon"
-          title="Save as reusable template (appears in the Library)"
-          onClick={() => onSaveTemplate(step)}
-        >
-          ☆
-        </button>
-        <button type="button" className="icon" title="Duplicate step" onClick={duplicate}>
-          ⧉
-        </button>
-        <button type="button" className="icon danger" title="Delete step" onClick={remove}>
-          ×
-        </button>
+        <div className="step-actions">
+          <button type="button" className="icon" title="Duplicate step" onClick={duplicate}>
+            ⧉
+          </button>
+          <button type="button" className="icon danger bare" title="Delete step" onClick={remove}>
+            ×
+          </button>
+        </div>
       </div>
       <div className="step-body">
         {renderRows('inputs')}
-        <div className="arrow">→</div>
+        <div className="arrow" aria-hidden="true">↓</div>
         {renderRows('outputs')}
       </div>
     </div>
