@@ -49,6 +49,7 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 - The sidepanel is a full-height overlay anchored to the left edge: while collapsed, the header and main content keep a left margin aligned to the strip; when expanded, the panel overlays the resource and library panels without shifting content.
 - The app fills the viewport height with no page scrollbar: side columns scroll internally and the planning field resizes with the window. On narrow (single-column) layouts the page scrolls normally.
 - The planning field's dotted background fills the whole bordered field area at any window size.
+- All creation, rename, and delete questions (workspaces, plans, step templates) use an in-app modal dialog with keyboard support (Enter confirms, Escape cancels); destructive actions use a red confirm button. Native prompt/confirm dialogs are no longer used.
 - The collapsed strip reads "Workspaces" and "Plans" top to bottom with an expand indicator (›); the expanded panel shows a collapse indicator (‹).
 
 ### Interactive field
@@ -90,6 +91,8 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 
 ### 2026-09-21
 
+- Replaced all native prompt/confirm/alert dialogs with an in-app modal (backdrop, Escape/Enter keys, danger styling for destructive confirmations).
+- Made the expanded Workspaces title itself collapse the panel and added a "Plans" heading above the plan list.
 - Made the app fill the viewport without a page scrollbar (side columns scroll internally, field resizes with the window) and made the planning field background cover the whole bordered area.
 - Reworked the workspace/plan sidepanel into a full-height overlay on the left edge: the collapsed strip keeps header and content aligned via a left margin, and the expanded panel overlays the resource and library panels.
 - Added a collapsible workspace/plan sidepanel on the left, collapsed by default, with workspace and plan create/rename/delete controls, tooltips, and a scrollable plan list; the header now shows only the active workspace and plan names.

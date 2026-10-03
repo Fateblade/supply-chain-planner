@@ -200,6 +200,57 @@ header {
   margin-bottom: 0;
 }
 
+/* Modal dialog */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgb(4 8 14 / 62%);
+}
+.modal {
+  width: min(420px, calc(100vw - 32px));
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 45%);
+}
+.modal h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: var(--text);
+}
+.modal-message {
+  margin: 0 0 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.modal input {
+  width: 100%;
+  margin-bottom: 14px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.modal-actions button {
+  min-width: 88px;
+}
+.modal-actions .danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #161016;
+  font-weight: 600;
+}
+.modal-actions .danger:hover {
+  filter: brightness(1.08);
+  border-color: var(--danger);
+  color: #161016;
+}
+
 .header-actions {
   margin-left: auto;
   display: flex;
