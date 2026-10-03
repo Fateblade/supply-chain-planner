@@ -306,24 +306,25 @@ export default function App() {
         </div>
       </header>
 
+      <div className="app-body">
+      <WorkspacePanel
+        expanded={panelExpanded}
+        workspaces={workspaceState.workspaces.map((item) => ({ id: item.id, name: item.name }))}
+        selectedWorkspaceId={workspace.id}
+        plans={workspace.plans.map((saved) => ({ id: saved.id, name: saved.name }))}
+        selectedPlanId={activeSaved?.id ?? ''}
+        onToggle={() => setPanelExpanded((value) => !value)}
+        onSelectWorkspace={changeWorkspace}
+        onNewWorkspace={createNewWorkspace}
+        onRenameWorkspace={renameWorkspace}
+        onDeleteWorkspace={deleteWorkspace}
+        onSelectPlan={loadPlanById}
+        onNewPlan={createPlan}
+        onRenamePlan={renamePlan}
+        onDeletePlan={deletePlan}
+      />
       <main>
         <div className="left-col">
-          <WorkspacePanel
-            expanded={panelExpanded}
-            workspaces={workspaceState.workspaces.map((item) => ({ id: item.id, name: item.name }))}
-            selectedWorkspaceId={workspace.id}
-            plans={workspace.plans.map((saved) => ({ id: saved.id, name: saved.name }))}
-            selectedPlanId={activeSaved?.id ?? ''}
-            onToggle={() => setPanelExpanded((value) => !value)}
-            onSelectWorkspace={changeWorkspace}
-            onNewWorkspace={createNewWorkspace}
-            onRenameWorkspace={renameWorkspace}
-            onDeleteWorkspace={deleteWorkspace}
-            onSelectPlan={loadPlanById}
-            onNewPlan={createPlan}
-            onRenamePlan={renamePlan}
-            onDeletePlan={deletePlan}
-          />
           <ResourcePanel plan={plan} onChange={updatePlan} ask={ask} />
           <LibraryPanel
             plan={plan}
@@ -361,6 +362,7 @@ export default function App() {
           <ResultsPanel plan={plan} result={result} onChange={updatePlan} />
         </aside>
       </main>
+      </div>
 
       {dialog && <Modal key={dialogKey.current} request={dialog} onClose={() => setDialog(null)} />}
     </div>

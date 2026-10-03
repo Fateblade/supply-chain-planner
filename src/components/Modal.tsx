@@ -31,12 +31,15 @@ interface Props {
 export function Modal({ request, onClose }: Props) {
   const [value, setValue] = useState(request.kind === 'prompt' ? (request.initial ?? '') : '');
   const inputRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // Focus an interactive control: prompts focus+select the input, confirms focus the
+    // confirm button so Enter confirms and Shift+Tab stays inside the trap.
     if (request.kind === 'prompt') inputRef.current?.select();
-    else dialogRef.current?.focus();
+    else confirmRef.current?.focus();
     return () => previous?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -109,7 +112,7 @@ export function Modal({ request, onClose }: Props) {
           )}
           <div className="modal-actions">
             {!info && <button type="button" onClick={onClose}>Cancel</button>}
-            <button type="submit" className={danger ? 'danger' : ''} disabled={disableConfirm}>
+            <button ref={confirmRef} type="submit" className={danger ? 'danger' : ''} disabled={disableConfirm}>
               {confirmLabel}
             </button>
           </div>
