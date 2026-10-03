@@ -28,6 +28,8 @@ const PORT_GAP = 29;
 /** Planning-field base size; matches the .field-canvas CSS minimums. */
 const FIELD_W = 1040;
 const FIELD_H = 760;
+/** Room beyond the farthest step so new ones can be placed past it. */
+const FIELD_MARGIN = 600;
 const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 2.5;
 
@@ -243,6 +245,19 @@ export function InteractiveField({
   const [viewState, setViewState] = useState(view.current);
   const [panning, setPanning] = useState(false);
 
+  // Content plane: base size plus room past the farthest step, so pan and
+  // zoom always reach steps placed outside the original viewport.
+  const plane = useRef({ w: FIELD_W, h: FIELD_H });
+  const planeW = Math.max(
+    FIELD_W,
+    ...plan.steps.map((step) => (step.position?.x ?? 0) + FIELD_MARGIN),
+  );
+  const planeH = Math.max(
+    FIELD_H,
+    ...plan.steps.map((step) => (step.position?.y ?? 0) + FIELD_MARGIN),
+  );
+  plane.current = { w: planeW, h: planeH };
+
   function applyView(next: { zoom: number; pan: { x: number; y: number } }) {
     // Keep the canvas visual box overlapping the viewport so the content
     // can never be panned or zoomed completely out of sight.
@@ -250,11 +265,9 @@ export function InteractiveField({
     if (el) {
       const vpW = el.clientWidth;
       const vpH = el.clientHeight;
-      const layoutW = Math.max(vpW, FIELD_W);
-      const layoutH = Math.max(vpH, FIELD_H);
       next.pan = {
-        x: Math.min(0, Math.max(vpW - layoutW * next.zoom, next.pan.x)),
-        y: Math.min(0, Math.max(vpH - layoutH * next.zoom, next.pan.y)),
+        x: Math.min(0, Math.max(vpW - plane.current.w * next.zoom, next.pan.x)),
+        y: Math.min(0, Math.max(vpH - plane.current.h * next.zoom, next.pan.y)),
       };
     }
     view.current = next;
@@ -306,13 +319,15 @@ export function InteractiveField({
     window.addEventListener('mouseup', stop);
   }
 
+  // Attached to the scroll container so double-clicking the background
+  // beyond the content plane also places a step.
   function addOnDoubleClick(event: ReactMouseEvent<HTMLDivElement>) {
-    if (event.target !== event.currentTarget) return;
+    if (event.target instanceof HTMLElement && event.target.closest('.field-step')) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     // The canvas is visually transformed; convert screen px to content px.
     onAddStep(
-      (event.clientX - bounds.left) / view.current.zoom,
-      (event.clientY - bounds.top) / view.current.zoom,
+      (event.clientX - bounds.left - view.current.pan.x) / view.current.zoom,
+      (event.clientY - bounds.top - view.current.pan.y) / view.current.zoom,
     );
   }
 
@@ -345,11 +360,13 @@ export function InteractiveField({
         ref={scrollRef}
         className={`field-scroll ${panning ? 'panning' : ''}`}
         onMouseDown={startPan}
+        onDoubleClick={addOnDoubleClick}
       >
         <div
           className="field-canvas"
-          onDoubleClick={addOnDoubleClick}
           style={{
+            width: planeW,
+            height: planeH,
             transform: `translate(${viewState.pan.x}px, ${viewState.pan.y}px) scale(${viewState.zoom})`,
             transformOrigin: '0 0',
           }}
@@ -369,10 +386,10 @@ export function InteractiveField({
               onCreateProducer={onCreateProducer}
             />
           ))}
-          {plan.steps.length === 0 && (
-            <div className="field-empty">Double-click anywhere to add your first process step.</div>
-          )}
         </div>
+        {plan.steps.length === 0 && (
+          <div className="field-empty">Double-click anywhere to add your first process step.</div>
+        )}
       </div>
     </section>
   );
