@@ -198,6 +198,22 @@ export default function App() {
     setSelectedStepId(step.id);
   }
 
+  function createProducer(resourceId: string) {
+    const resource = plan.resources.find((r) => r.id === resourceId);
+    if (!resource) return;
+    // Place the new producing step one row below the step that needs it.
+    const position = { x: selectedStep?.position?.x ?? 150, y: (selectedStep?.position?.y ?? 120) + 190 };
+    const step = {
+      id: newId(),
+      name: resource.name,
+      inputs: [],
+      outputs: [{ resourceId: resource.id, amount: 1 }],
+      position,
+    };
+    updatePlan({ ...plan, steps: [...plan.steps, step] });
+    setSelectedStepId(step.id);
+  }
+
   function moveStep(stepId: string, x: number, y: number) {
     updatePlan({
       ...plan,
@@ -328,7 +344,7 @@ export default function App() {
                 <h2>Selected step</h2>
                 <button type="button" className="bare" title="Deselect step" onClick={clearSelection}>×</button>
               </div>
-              <StepCard key={selectedStep.id} plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} ask={ask} />
+              <StepCard key={selectedStep.id} plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} onCreateProducer={createProducer} ask={ask} />
             </section>
           ) : (
             <section className="panel selection-empty">
