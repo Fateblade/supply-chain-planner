@@ -9,6 +9,8 @@
   --danger: #ff7d87;
   --ok: #68d391;
   --warn: #f3c969;
+  --strip-w: 48px;
+  --sidepanel-w: 308px; /* strip width + left column width, so the expanded panel covers resources and library */
 }
 
 * {
@@ -27,6 +29,9 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  /* Left margin so header and content align next to the collapsed strip overlay */
+  padding-left: var(--strip-w);
 }
 
 header {
@@ -52,16 +57,23 @@ header {
   text-overflow: ellipsis;
 }
 
-/* Collapsible workspace/plan sidepanel */
+/* Collapsible workspace/plan sidepanel — full-height overlay on the left */
 .workspace-strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--strip-w);
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 12px 6px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 14px 0;
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid var(--border);
   background: var(--panel);
-  border: 1px solid var(--border);
   color: var(--muted);
 }
 .workspace-strip:hover {
@@ -79,13 +91,21 @@ header {
   color: var(--accent);
 }
 .workspace-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidepanel-w);
+  z-index: 40;
   display: flex;
   flex-direction: column;
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 14px 12px;
+  box-shadow: 12px 0 28px rgb(0 0 0 / 30%);
+  overflow-y: auto;
 }
 .workspace-panel .panel-head {
   display: flex;
@@ -115,12 +135,13 @@ header {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 240px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
 }
-.workspace-panel .plan-list:not(:has(li:nth-child(9))) {
-  overflow-y: hidden;
+.workspace-panel .plan-list:not(:has(.plan-item)) {
+  flex: 0;
 }
 .workspace-panel .plan-item {
   display: block;

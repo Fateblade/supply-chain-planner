@@ -46,6 +46,7 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 - On upgrade, the current saved plan and both existing template libraries migrate into the initial **Game: Spacecraft** workspace.
 - Workspace and plan management lives in a collapsible left sidepanel, collapsed by default. The header shows only `<Workspace Name>: <Selected Plan Name>` as text.
 - The expanded sidepanel shows a workspace combobox with new (+), rename (R), and delete (D, with confirmation) buttons, a splitter, a scrollable plan list with the selected plan highlighted, and new/rename/delete plan buttons at the bottom. All buttons have hover tooltips.
+- The sidepanel is a full-height overlay anchored to the left edge: while collapsed, the header and main content keep a left margin aligned to the strip; when expanded, the panel overlays the resource and library panels without shifting content.
 - The collapsed strip reads "Workspaces" and "Plans" top to bottom with an expand indicator (›); the expanded panel shows a collapse indicator (‹).
 
 ### Interactive field
@@ -87,6 +88,7 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 
 ### 2026-09-21
 
+- Reworked the workspace/plan sidepanel into a full-height overlay on the left edge: the collapsed strip keeps header and content aligned via a left margin, and the expanded panel overlays the resource and library panels.
 - Added a collapsible workspace/plan sidepanel on the left, collapsed by default, with workspace and plan create/rename/delete controls, tooltips, and a scrollable plan list; the header now shows only the active workspace and plan names.
 - Added named workspaces with workspace-specific resources and libraries.
 - Added multiple named plans per workspace with create, save, load, rename, and delete controls.
