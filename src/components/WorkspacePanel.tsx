@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
 
+/** Shared between the collapsed strip, the toggle button, and the panel body. */
+const PANEL_BODY_ID = 'workspace-panel-body';
+
 interface PlanEntry {
   id: string;
   name: string;
@@ -63,7 +66,7 @@ export function WorkspacePanel({
         title="Expand workspaces and plans"
         aria-label="Expand workspaces and plans"
         aria-expanded="false"
-        aria-controls="workspace-panel-body"
+        aria-controls={PANEL_BODY_ID}
       >
         <span className="strip-label">Workspaces</span>
         <span className="strip-indicator">›</span>
@@ -73,7 +76,7 @@ export function WorkspacePanel({
   }
 
   return (
-    <section className="workspace-panel" id="workspace-panel-body">
+    <section className="workspace-panel" id={PANEL_BODY_ID}>
       <button
         ref={titleRef}
         type="button"
@@ -82,7 +85,7 @@ export function WorkspacePanel({
         title="Collapse panel (‹)"
         aria-label="Collapse workspaces panel"
         aria-expanded="true"
-        aria-controls="workspace-panel-body"
+        aria-controls={PANEL_BODY_ID}
       >
         <span>Workspaces</span>
         <span className="collapse-hint" aria-hidden="true">‹</span>

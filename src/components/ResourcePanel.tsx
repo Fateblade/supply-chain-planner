@@ -2,12 +2,12 @@ import { useState } from 'react';
 import type { Plan, Resource } from '../model/types';
 import { removeResourceAndLinks } from '../model/links';
 import { newId } from '../model/types';
-import type { DialogRequest } from './Modal';
+import type { Ask } from './Modal';
 
 interface Props {
   plan: Plan;
   onChange: (plan: Plan) => void;
-  ask: (request: DialogRequest) => void;
+  ask: Ask;
 }
 
 /** Left panel: add/rename resources, toggle raw (external) and target (final). */
@@ -28,7 +28,7 @@ export function ResourcePanel({ plan, onChange, ask }: Props) {
     setDraft('');
   }
 
-  function update(rid: string, patch: Partial<Resource>) {
+  function updateResource(rid: string, patch: Partial<Resource>) {
     onChange({
       ...plan,
       resources: plan.resources.map((r) => (r.id === rid ? { ...r, ...patch } : r)),
@@ -45,7 +45,7 @@ export function ResourcePanel({ plan, onChange, ask }: Props) {
     });
   }
 
-  function remove(rid: string) {
+  function confirmRemove(rid: string) {
     ask({
       kind: 'confirm',
       title: 'Delete resource',
@@ -88,13 +88,13 @@ export function ResourcePanel({ plan, onChange, ask }: Props) {
             <input
               className="name"
               value={r.name}
-              onChange={(e) => update(r.id, { name: e.target.value })}
+              onChange={(e) => updateResource(r.id, { name: e.target.value })}
             />
             <button
               type="button"
               className={`toggle ${r.isRaw ? 'on' : ''}`}
               title="Raw: supplied from outside (mined/bought)"
-              onClick={() => update(r.id, { isRaw: !r.isRaw })}
+              onClick={() => updateResource(r.id, { isRaw: !r.isRaw })}
             >
               raw
             </button>
@@ -110,7 +110,7 @@ export function ResourcePanel({ plan, onChange, ask }: Props) {
               type="button"
               className="icon danger"
               title={usedByStep(r.id) ? 'Delete (also removes it from steps)' : 'Delete'}
-              onClick={() => remove(r.id)}
+              onClick={() => confirmRemove(r.id)}
             >
               ×
             </button>

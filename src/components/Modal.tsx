@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { KeyboardEvent } from 'react';
 
 export type DialogRequest =
   | {
@@ -21,6 +21,9 @@ export type DialogRequest =
       onConfirm: () => void;
     };
 
+/** Callback that opens a modal dialog (see App.ask). */
+export type Ask = (request: DialogRequest) => void;
+
 interface Props {
   request: DialogRequest;
   onClose: () => void;
@@ -41,7 +44,6 @@ export function Modal({ request, onClose }: Props) {
     if (request.kind === 'prompt') inputRef.current?.select();
     else confirmRef.current?.focus();
     return () => previous?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function confirmRequest() {
@@ -78,10 +80,6 @@ export function Modal({ request, onClose }: Props) {
     }
   }
 
-  function stopPropagation(event: MouseEvent) {
-    event.stopPropagation();
-  }
-
   const confirmLabel = request.confirmLabel ?? (request.kind === 'prompt' ? 'OK' : 'Confirm');
   const danger = request.kind === 'confirm' && request.danger === true;
   const info = request.kind === 'confirm' && request.info === true;
@@ -96,7 +94,7 @@ export function Modal({ request, onClose }: Props) {
         aria-modal="true"
         aria-label={request.title}
         tabIndex={-1}
-        onMouseDown={stopPropagation}
+        onMouseDown={(event) => event.stopPropagation()}
       >
         <h2>{request.title}</h2>
         {request.kind === 'confirm' && <p className="modal-message">{request.message}</p>}

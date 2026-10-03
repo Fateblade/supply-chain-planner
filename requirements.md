@@ -91,6 +91,7 @@ The primary UX principle is **direct manipulation**: users should be able to cre
 
 ### 2026-09-21
 
+- Refactored the dialog wiring (askPrompt/askConfirm/askInfo helpers, shared Ask type, clearSelection), tidied panel components and CSS, and added an npm typecheck script; no behavior change.
 - Replaced all native prompt/confirm/alert dialogs with an in-app modal (backdrop, Escape/Enter keys, danger styling for destructive confirmations).
 - Made the expanded Workspaces title itself collapse the panel and added a "Plans" heading above the plan list.
 - Made the app fill the viewport without a page scrollbar (side columns scroll internally, field resizes with the window) and made the planning field background cover the whole bordered area.

@@ -38,11 +38,10 @@ export default function App() {
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState>(loadWorkspaceState);
   const [panelExpanded, setPanelExpanded] = useState(false);
   const [dialog, setDialog] = useState<DialogRequest | null>(null);
-  const dialogKey = useRef(0);
 
-  /** Open a modal dialog; the key forces a fresh Modal instance per request. */
+  /** Open a modal dialog (see Modal). Only one dialog is open at a time, and the
+   *  previous one always unmounts first, so each Modal mounts fresh. */
   function ask(request: DialogRequest) {
-    dialogKey.current += 1;
     setDialog(request);
   }
   const [selectedStepId, setSelectedStepId] = useState<string>();
@@ -71,141 +70,134 @@ export default function App() {
     updateActiveWorkspace((current) => updateActivePlan(current, nextPlan));
   }
 
-  function changeWorkspace(workspaceId: string) {
-    setWorkspaceState((state) => ({ ...state, activeWorkspaceId: workspaceId }));
+  function clearSelection() {
     setSelectedStepId(undefined);
   }
 
+  /** Prompt dialog: request a text value, then continue with it. */
+  function askPrompt(
+    options: Omit<Extract<DialogRequest, { kind: 'prompt' }>, 'kind' | 'onConfirm'>,
+    onConfirm: (value: string) => void,
+  ) {
+    ask({ ...options, kind: 'prompt', onConfirm });
+  }
+
+  /** Confirm dialog: show a message, then continue if accepted. */
+  function askConfirm(
+    options: Omit<Extract<DialogRequest, { kind: 'confirm' }>, 'kind' | 'onConfirm'>,
+    onConfirm: () => void,
+  ) {
+    ask({ ...options, kind: 'confirm', onConfirm });
+  }
+
+  /** Informational dialog with a single dismiss action. */
+  function askInfo(title: string, message: string) {
+    askConfirm({ title, message, confirmLabel: 'OK', info: true }, () => undefined);
+  }
+
+  function changeWorkspace(workspaceId: string) {
+    setWorkspaceState((state) => ({ ...state, activeWorkspaceId: workspaceId }));
+    clearSelection();
+  }
+
   function createNewWorkspace() {
-    setDialog({
-      kind: 'prompt',
-      title: 'New workspace',
-      label: 'Workspace name',
-      confirmLabel: 'Create',
-      onConfirm: (value) => {
+    askPrompt(
+      { title: 'New workspace', label: 'Workspace name', confirmLabel: 'Create' },
+      (value) => {
         const created = createWorkspace(value.trim(), { ...samplePlan(), name: 'Plan 1' });
         setWorkspaceState((state) => ({
           workspaces: [...state.workspaces, created],
           activeWorkspaceId: created.id,
         }));
-        setSelectedStepId(undefined);
+        clearSelection();
       },
-    });
+    );
   }
 
   function renameWorkspace() {
-    setDialog({
-      kind: 'prompt',
-      title: 'Rename workspace',
-      label: 'Workspace name',
-      initial: workspace.name,
-      confirmLabel: 'Rename',
-      onConfirm: (value) => updateActiveWorkspace((current) => ({ ...current, name: value.trim() })),
-    });
+    askPrompt(
+      { title: 'Rename workspace', label: 'Workspace name', initial: workspace.name, confirmLabel: 'Rename' },
+      (value) => updateActiveWorkspace((current) => ({ ...current, name: value.trim() })),
+    );
   }
 
   function deleteWorkspace() {
     if (workspaceState.workspaces.length <= 1) {
-      ask({
-        kind: 'confirm',
-        title: 'Cannot delete workspace',
-        message: 'Keep at least one workspace.',
-        confirmLabel: 'OK',
-        info: true,
-        onConfirm: () => undefined,
-      });
+      askInfo('Cannot delete workspace', 'Keep at least one workspace.');
       return;
     }
-    ask({
-      kind: 'confirm',
-      title: 'Delete workspace',
-      message: `Delete workspace “${workspace.name}” and all its plans and libraries? This cannot be undone.`,
-      confirmLabel: 'Delete',
-      danger: true,
-      onConfirm: () => {
+    askConfirm(
+      {
+        title: 'Delete workspace',
+        message: `Delete workspace “${workspace.name}” and all its plans and libraries? This cannot be undone.`,
+        confirmLabel: 'Delete',
+        danger: true,
+      },
+      () => {
         setWorkspaceState((state) => {
           const remaining = state.workspaces.filter((item) => item.id !== workspace.id);
           return { ...state, workspaces: remaining, activeWorkspaceId: remaining[0].id };
         });
-        setSelectedStepId(undefined);
+        clearSelection();
       },
-    });
+    );
   }
 
   function createPlan() {
-    ask({
-      kind: 'prompt',
-      title: 'New plan',
-      label: 'Plan name',
-      initial: `Plan ${workspace.plans.length + 1}`,
-      confirmLabel: 'Create',
-      onConfirm: (value) => {
+    askPrompt(
+      { title: 'New plan', label: 'Plan name', initial: `Plan ${workspace.plans.length + 1}`, confirmLabel: 'Create' },
+      (value) => {
         updateActiveWorkspace((current) => makePlanInWorkspace(current, value.trim()));
-        setSelectedStepId(undefined);
+        clearSelection();
       },
-    });
+    );
   }
 
-  function loadPlanById(planId: string) {
-    const saved = workspace.plans.find((item) => item.id === planId);
-    if (!saved) return;
+  function selectPlan(planId: string) {
+    if (!workspace.plans.some((item) => item.id === planId)) return;
     updateActiveWorkspace((current) => ({ ...current, activePlanId: planId }));
-    setSelectedStepId(undefined);
+    clearSelection();
   }
 
   function renamePlan() {
-    ask({
-      kind: 'prompt',
-      title: 'Rename plan',
-      label: 'Plan name',
-      initial: plan.name,
-      confirmLabel: 'Rename',
-      onConfirm: (value) => updatePlan({ ...plan, name: value.trim() }),
-    });
+    askPrompt(
+      { title: 'Rename plan', label: 'Plan name', initial: plan.name, confirmLabel: 'Rename' },
+      (value) => updatePlan({ ...plan, name: value.trim() }),
+    );
   }
 
   function deletePlan() {
     if (workspace.plans.length <= 1) {
-      ask({
-        kind: 'confirm',
-        title: 'Cannot delete plan',
-        message: 'Keep at least one plan in each workspace.',
-        confirmLabel: 'OK',
-        info: true,
-        onConfirm: () => undefined,
-      });
+      askInfo('Cannot delete plan', 'Keep at least one plan in each workspace.');
       return;
     }
-    ask({
-      kind: 'confirm',
-      title: 'Delete plan',
-      message: `Delete plan “${plan.name || 'Unnamed plan'}”? This cannot be undone.`,
-      confirmLabel: 'Delete',
-      danger: true,
-      onConfirm: () => {
+    askConfirm(
+      {
+        title: 'Delete plan',
+        message: `Delete plan “${plan.name || 'Unnamed plan'}”? This cannot be undone.`,
+        confirmLabel: 'Delete',
+        danger: true,
+      },
+      () => {
         updateActiveWorkspace((current) => {
           const plans = current.plans.filter((saved) => saved.id !== current.activePlanId);
           return { ...current, plans, activePlanId: plans[0].id };
         });
-        setSelectedStepId(undefined);
+        clearSelection();
       },
-    });
+    );
   }
 
   function saveStepAsTemplate(step: ProcessStep) {
-    ask({
-      kind: 'prompt',
-      title: 'Save step template',
-      label: 'Template name',
-      initial: step.name || 'Unnamed step',
-      confirmLabel: 'Save',
-      onConfirm: (value) => {
+    askPrompt(
+      { title: 'Save step template', label: 'Template name', initial: step.name || 'Unnamed step', confirmLabel: 'Save' },
+      (value) => {
         updateActiveWorkspace((current) => ({
           ...current,
           stepTemplates: [...current.stepTemplates, stepToTemplate(step, plan, value)],
         }));
       },
-    });
+    );
   }
 
   function addStepAt(x: number, y: number) {
@@ -264,26 +256,15 @@ export default function App() {
         resources: mergeResources(workspace.resources, parsed.resources),
       });
     } catch {
-      ask({
-        kind: 'confirm',
-        title: 'Import failed',
-        message: 'Could not import: not a valid plan file.',
-        confirmLabel: 'OK',
-        info: true,
-        onConfirm: () => undefined,
-      });
+      askInfo('Import failed', 'Could not import: not a valid plan file.');
     }
   }
 
   function resetToSample() {
-    ask({
-      kind: 'confirm',
-      title: 'Replace plan',
-      message: 'Replace the current plan with the sample plan?',
-      confirmLabel: 'Replace',
-      danger: true,
-      onConfirm: () => updatePlan({ ...samplePlan(), resources: workspace.resources }),
-    });
+    askConfirm(
+      { title: 'Replace plan', message: 'Replace the current plan with the sample plan?', confirmLabel: 'Replace', danger: true },
+      () => updatePlan({ ...samplePlan(), resources: workspace.resources }),
+    );
   }
 
   const activeSaved: SavedWorkspacePlan | undefined = activeSavedPlan(workspace);
@@ -318,7 +299,7 @@ export default function App() {
         onNewWorkspace={createNewWorkspace}
         onRenameWorkspace={renameWorkspace}
         onDeleteWorkspace={deleteWorkspace}
-        onSelectPlan={loadPlanById}
+        onSelectPlan={selectPlan}
         onNewPlan={createPlan}
         onRenamePlan={renamePlan}
         onDeletePlan={deletePlan}
@@ -349,7 +330,7 @@ export default function App() {
             <section className="panel selected-step-panel">
               <div className="sidebar-heading">
                 <h2>Selected step</h2>
-                <button type="button" className="icon" onClick={() => setSelectedStepId(undefined)}>×</button>
+                <button type="button" className="icon" onClick={clearSelection}>×</button>
               </div>
               <StepCard plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} />
             </section>
@@ -364,7 +345,7 @@ export default function App() {
       </main>
       </div>
 
-      {dialog && <Modal key={dialogKey.current} request={dialog} onClose={() => setDialog(null)} />}
+      {dialog && <Modal request={dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }

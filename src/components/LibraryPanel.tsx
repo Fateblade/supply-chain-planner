@@ -2,12 +2,17 @@ import type { Plan } from '../model/types';
 import type { PlanTemplate, StepTemplate, TemplateAmount } from '../model/templates';
 import { instantiatePlanTemplate, instantiateStepTemplate } from '../model/templates';
 import { newId } from '../model/types';
-import type { DialogRequest } from './Modal';
+import type { Ask } from './Modal';
 
 /** Tooltip describing what a step template consumes and produces. */
 function templateSummary(t: StepTemplate): string {
   const fmt = (a: TemplateAmount) => `${a.amount} ${a.resourceName}`;
   return `${t.inputs.map(fmt).join(', ')} → ${t.outputs.map(fmt).join(', ')}`;
+}
+
+/** Remove the item with the given id (used when deleting a template row). */
+function withoutId<T extends { id: string }>(items: T[], id: string): T[] {
+  return items.filter((item) => item.id !== id);
 }
 
 interface TemplateRowProps {
@@ -41,7 +46,7 @@ interface Props {
   onChange: (plan: Plan) => void;
   onStepTemplates: (t: StepTemplate[]) => void;
   onPlanTemplates: (t: PlanTemplate[]) => void;
-  ask: (request: DialogRequest) => void;
+  ask: Ask;
 }
 
 /** Reusable building blocks: step templates (insert into any plan) and plan
@@ -100,7 +105,7 @@ export function LibraryPanel({
             tooltip={templateSummary(t)}
             actionLabel="Insert"
             onAction={() => onChange(instantiateStepTemplate(plan, t))}
-            onDelete={() => onStepTemplates(stepTemplates.filter((x) => x.id !== t.id))}
+            onDelete={() => onStepTemplates(withoutId(stepTemplates, t.id))}
           />
         ))}
       </ul>
@@ -116,7 +121,7 @@ export function LibraryPanel({
             name={t.name}
             actionLabel="Load"
             onAction={() => loadPlanTemplate(t)}
-            onDelete={() => onPlanTemplates(planTemplates.filter((x) => x.id !== t.id))}
+            onDelete={() => onPlanTemplates(withoutId(planTemplates, t.id))}
           />
         ))}
       </ul>
