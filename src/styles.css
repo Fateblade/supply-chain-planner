@@ -40,48 +40,114 @@ header {
 .app-header {
   flex-wrap: wrap;
 }
-.workspace-controls,
-.plan-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.workspace-controls label,
-.plan-controls label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.workspace-controls select {
-  max-width: 165px;
-}
-.plan-controls select {
-  max-width: 190px;
-}
-.workspace-controls button,
-.plan-controls button,
 .header-actions button {
   padding-inline: 8px;
   white-space: nowrap;
 }
-
-.plan-name {
-  font-size: 18px;
+.header-title {
+  font-size: 16px;
   font-weight: 600;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 6px 8px;
-  flex: 1;
-  max-width: 420px;
-  background: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.plan-name:hover,
-.plan-name:focus {
-  border-color: var(--border);
+
+/* Collapsible workspace/plan sidepanel */
+.workspace-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 6px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.workspace-strip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.workspace-strip .strip-label {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.workspace-strip .strip-indicator {
+  font-size: 15px;
+  color: var(--accent);
+}
+.workspace-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+.workspace-panel .panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.workspace-panel .panel-head h2 {
+  margin: 0;
+}
+.workspace-panel .panel-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.workspace-panel .panel-row select {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-panel .panel-splitter {
+  border-top: 1px solid var(--border);
+  margin-block: 10px;
+}
+.workspace-panel .plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.workspace-panel .plan-list:not(:has(li:nth-child(9))) {
+  overflow-y: hidden;
+}
+.workspace-panel .plan-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 5px 8px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--text);
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.workspace-panel .plan-item:hover {
   background: var(--panel-raised);
-  outline: none;
+  border-color: var(--border);
+  color: var(--text);
+}
+.workspace-panel .plan-item.selected {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.workspace-panel .panel-row.bottom {
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
 .header-actions {
@@ -115,12 +181,7 @@ main {
   .app-header {
     align-items: stretch;
   }
-  .workspace-controls,
-  .plan-controls,
-  .header-actions {
-    flex-wrap: wrap;
-  }
-  .plan-name {
+  .header-title {
     flex: 1 1 100%;
   }
   .header-actions {

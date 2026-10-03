@@ -20,6 +20,7 @@ import { ResourcePanel } from './components/ResourcePanel';
 import { StepCard } from './components/StepCard';
 import { ResultsPanel } from './components/ResultsPanel';
 import { LibraryPanel } from './components/LibraryPanel';
+import { WorkspacePanel } from './components/WorkspacePanel';
 import { InteractiveField } from './components/InteractiveField';
 
 function blankPlan(name: string): Plan {
@@ -33,6 +34,7 @@ function makePlanInWorkspace(workspace: Workspace, name: string): Workspace {
 
 export default function App() {
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState>(loadWorkspaceState);
+  const [panelExpanded, setPanelExpanded] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string>();
   const fileInput = useRef<HTMLInputElement>(null);
   const workspace = activeWorkspace(workspaceState);
@@ -98,10 +100,6 @@ export default function App() {
     if (name === null || !name.trim()) return;
     updateActiveWorkspace((current) => makePlanInWorkspace(current, name.trim()));
     setSelectedStepId(undefined);
-  }
-
-  function saveCurrentPlan() {
-    updatePlan(plan);
   }
 
   function loadPlanById(planId: string) {
@@ -208,30 +206,9 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="workspace-controls">
-          <label>Workspace <select value={workspace.id} onChange={(event) => changeWorkspace(event.target.value)}>
-            {workspaceState.workspaces.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select></label>
-          <button type="button" onClick={createNewWorkspace}>New workspace</button>
-          <button type="button" onClick={renameWorkspace}>Rename</button>
-          <button type="button" onClick={deleteWorkspace} disabled={workspaceState.workspaces.length <= 1}>Delete</button>
-        </div>
-        <div className="plan-controls">
-          <label>Plan <select value={activeSaved?.id ?? ''} onChange={(event) => loadPlanById(event.target.value)}>
-            {workspace.plans.map((saved) => <option key={saved.id} value={saved.id}>{saved.name || 'Unnamed plan'}</option>)}
-          </select></label>
-          <button type="button" onClick={createPlan}>New plan</button>
-          <button type="button" onClick={saveCurrentPlan}>Save</button>
-          <button type="button" onClick={renamePlan}>Rename</button>
-          <button type="button" onClick={deletePlan} disabled={workspace.plans.length <= 1}>Delete</button>
-        </div>
-        <input
-          className="plan-name"
-          aria-label="Plan name"
-          value={plan.name}
-          onChange={(event) => updatePlan({ ...plan, name: event.target.value })}
-          title="Plan name"
-        />
+        <span className="header-title" title="Active workspace : selected plan">
+          {workspace.name}: {plan.name || 'Unnamed plan'}
+        </span>
         <div className="header-actions">
           <button type="button" onClick={() => exportPlan(plan)}>Export</button>
           <button type="button" onClick={() => fileInput.current?.click()}>Import</button>
@@ -246,6 +223,22 @@ export default function App() {
 
       <main>
         <div className="left-col">
+          <WorkspacePanel
+            expanded={panelExpanded}
+            workspaces={workspaceState.workspaces.map((item) => ({ id: item.id, name: item.name }))}
+            selectedWorkspaceId={workspace.id}
+            plans={workspace.plans.map((saved) => ({ id: saved.id, name: saved.name }))}
+            selectedPlanId={activeSaved?.id ?? ''}
+            onToggle={() => setPanelExpanded((value) => !value)}
+            onSelectWorkspace={changeWorkspace}
+            onNewWorkspace={createNewWorkspace}
+            onRenameWorkspace={renameWorkspace}
+            onDeleteWorkspace={deleteWorkspace}
+            onSelectPlan={loadPlanById}
+            onNewPlan={createPlan}
+            onRenamePlan={renamePlan}
+            onDeletePlan={deletePlan}
+          />
           <ResourcePanel plan={plan} onChange={updatePlan} />
           <LibraryPanel
             plan={plan}
