@@ -9,11 +9,13 @@ interface Props {
   step: ProcessStep;
   onChange: (plan: Plan) => void;
   onSaveTemplate: (step: ProcessStep) => void;
+  /** True when an identical copy of this step is already in the library. */
+  inLibrary?: boolean;
   ask: Ask;
 }
 
 /** One process step card: name, input rows, output rows, duplicate/delete. */
-export function StepCard({ plan, step, onChange, onSaveTemplate, ask }: Props) {
+export function StepCard({ plan, step, onChange, onSaveTemplate, inLibrary = false, ask }: Props) {
   const nameRef = useRef<HTMLInputElement>(null);
 
   // A freshly created (or still unnamed) step gets the cursor in its name
@@ -131,11 +133,16 @@ export function StepCard({ plan, step, onChange, onSaveTemplate, ask }: Props) {
         />
         <button
           type="button"
-          className="icon"
-          title="Save as reusable template (appears in the Library)"
+          className={`icon star ${inLibrary ? 'saved' : ''}`}
+          disabled={inLibrary}
+          title={
+            inLibrary
+              ? 'Already saved in the library'
+              : 'Save as reusable template (appears in the Library)'
+          }
           onClick={() => onSaveTemplate(step)}
         >
-          ☆
+          {inLibrary ? '★' : '☆'}
         </button>
       </div>
       <div className="step-controls">

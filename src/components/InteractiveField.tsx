@@ -10,6 +10,8 @@ interface Props {
   onAddStep: (x: number, y: number) => void;
   /** Double-click a step's input handle: create a step that makes that resource. */
   onCreateProducer: (resourceId: string) => void;
+  /** Single click a step's input handle: offer library steps that make it. */
+  onOfferProducers: (resourceId: string, stepId: string) => void;
   onConnect: (
     sourceStepId: string,
     sourceKind: PortKind,
@@ -85,6 +87,7 @@ function StepNode({
   onMove,
   onConnect,
   onCreateProducer,
+  onOfferProducers,
 }: {
   plan: Plan;
   step: ProcessStep;
@@ -95,9 +98,11 @@ function StepNode({
   onMove: (x: number, y: number) => void;
   onConnect: Props['onConnect'];
   onCreateProducer: Props['onCreateProducer'];
+  onOfferProducers: Props['onOfferProducers'];
 }) {
   const position = step.position ?? defaultPosition(index);
   const nodeDragStarted = useRef(false);
+  const handleDragged = useRef(false);
 
   function startDrag(event: DragEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return;
@@ -126,6 +131,7 @@ function StepNode({
   ) {
     event.stopPropagation();
     nodeDragStarted.current = false;
+    handleDragged.current = true;
     event.dataTransfer.setData(
       'application/json',
       JSON.stringify({ type: 'resource', stepId: step.id, kind, index, resourceId }),
@@ -167,9 +173,18 @@ function StepNode({
           event.dataTransfer.dropEffect = 'copy';
         }}
         onDrop={(event) => connectToTarget(event, kind, index)}
+        onClick={() => {
+          // A handle drag suppresses the trailing click so it doesn't
+          // open the library picker.
+          if (handleDragged.current) {
+            handleDragged.current = false;
+            return;
+          }
+          if (isInput) onOfferProducers(resourceId, step.id);
+        }}
         onDoubleClick={isInput ? () => onCreateProducer(resourceId) : undefined}
         title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect${
-          isInput ? ' · double-click to create a step that makes this' : ''
+          isInput ? ' · click for library steps · double-click to create one' : ''
         }`}
       >
         {isInput ? <span>{resourceName(plan, resourceId)}</span> : <b>{resourceName(plan, resourceId)}</b>}
@@ -238,6 +253,7 @@ export function InteractiveField({
   onAddStep,
   onConnect,
   onCreateProducer,
+  onOfferProducers,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Mirror of viewState so imperative handlers always read fresh values.
@@ -384,6 +400,7 @@ export function InteractiveField({
               onMove={(x, y) => onMove(step.id, x, y)}
               onConnect={onConnect}
               onCreateProducer={onCreateProducer}
+              onOfferProducers={onOfferProducers}
             />
           ))}
         </div>

@@ -232,6 +232,25 @@ header {
   color: var(--muted);
   line-height: 1.5;
 }
+.choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.choice-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+.choice-option small {
+  color: var(--muted);
+  font-size: 11px;
+}
 .modal input {
   width: 100%;
   margin-bottom: 14px;
@@ -418,6 +437,12 @@ select:focus {
 .icon.danger:hover {
   border-color: var(--danger);
   color: var(--danger);
+}
+.icon.star.saved {
+  opacity: 1;
+  color: #f7c948;
+  border-color: #f7c948;
+  cursor: default;
 }
 
 .hint {

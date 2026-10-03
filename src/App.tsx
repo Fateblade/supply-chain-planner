@@ -4,7 +4,7 @@ import { newId } from './model/types';
 import { connectPorts } from './model/links';
 import { solvePlan } from './model/solver';
 import { samplePlan } from './model/sample';
-import { stepToTemplate } from './model/templates';
+import { instantiateStepTemplate, isStepInLibrary, stepToTemplate, templateSummary } from './model/templates';
 import {
   activeSavedPlan,
   activeWorkspace,
@@ -214,6 +214,36 @@ export default function App() {
     setSelectedStepId(step.id);
   }
 
+  function offerProducers(resourceId: string, stepId: string) {
+    const resource = plan.resources.find((r) => r.id === resourceId);
+    if (!resource) return;
+    const matches = workspace.stepTemplates.filter((t) =>
+      t.outputs.some((o) => o.resourceName.toLowerCase() === resource.name.toLowerCase()),
+    );
+    if (matches.length === 0) {
+      askInfo(
+        'No library steps',
+        `No step template makes “${resource.name}”. Save one with ☆ on its card first.`,
+      );
+      return;
+    }
+    const source = plan.steps.find((s) => s.id === stepId);
+    const position = { x: source?.position?.x ?? 150, y: (source?.position?.y ?? 120) + 190 };
+    ask({
+      kind: 'choice',
+      title: `Steps that make “${resource.name}”`,
+      message: 'Insert a copy from the library?',
+      options: matches.map((t) => ({ id: t.id, label: t.name, detail: templateSummary(t) })),
+      onSelect: (tplId) => {
+        const tpl = matches.find((t) => t.id === tplId);
+        if (!tpl) return;
+        const next = instantiateStepTemplate(plan, tpl, position);
+        updatePlan(next);
+        setSelectedStepId(next.steps[next.steps.length - 1].id);
+      },
+    });
+  }
+
   function moveStep(stepId: string, x: number, y: number) {
     updatePlan({
       ...plan,
@@ -336,6 +366,7 @@ export default function App() {
           onMove={moveStep}
           onAddStep={addStepAt}
           onCreateProducer={createProducer}
+          onOfferProducers={offerProducers}
           onConnect={connectSteps}
         />
         <aside className="right-col">
@@ -345,7 +376,15 @@ export default function App() {
                 <h2>Selected step</h2>
                 <button type="button" className="bare" title="Deselect step" onClick={clearSelection}>×</button>
               </div>
-              <StepCard key={selectedStep.id} plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} ask={ask} />
+              <StepCard
+                key={selectedStep.id}
+                plan={plan}
+                step={selectedStep}
+                onChange={updatePlan}
+                onSaveTemplate={saveStepAsTemplate}
+                inLibrary={isStepInLibrary(selectedStep, plan, workspace.stepTemplates)}
+                ask={ask}
+              />
             </section>
           ) : (
             <section className="panel selection-empty">

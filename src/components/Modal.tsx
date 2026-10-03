@@ -19,6 +19,14 @@ export type DialogRequest =
       /** Informational dialog: renders a single dismiss button, no Cancel. */
       info?: boolean;
       onConfirm: () => void;
+    }
+  | {
+      kind: 'choice';
+      title: string;
+      message?: string;
+      /** One entry per selectable option; picking one closes the dialog. */
+      options: { id: string; label: string; detail?: string }[];
+      onSelect: (id: string) => void;
     };
 
 /** Callback that opens a modal dialog (see App.ask). */
@@ -42,6 +50,7 @@ export function Modal({ request, onClose }: Props) {
     // Focus an interactive control: prompts focus+select the input, confirms focus the
     // confirm button so Enter confirms and Shift+Tab stays inside the trap.
     if (request.kind === 'prompt') inputRef.current?.select();
+    else if (request.kind === 'choice') dialogRef.current?.querySelector('button')?.focus();
     else confirmRef.current?.focus();
     return () => previous?.focus();
   }, []);
@@ -50,7 +59,7 @@ export function Modal({ request, onClose }: Props) {
     if (request.kind === 'prompt') {
       if (!value.trim()) return;
       request.onConfirm(value);
-    } else {
+    } else if (request.kind !== 'choice') {
       request.onConfirm();
     }
     onClose();
@@ -80,7 +89,10 @@ export function Modal({ request, onClose }: Props) {
     }
   }
 
-  const confirmLabel = request.confirmLabel ?? (request.kind === 'prompt' ? 'OK' : 'Confirm');
+  const confirmLabel =
+    request.kind === 'choice'
+      ? ''
+      : (request.confirmLabel ?? (request.kind === 'prompt' ? 'OK' : 'Confirm'));
   const danger = request.kind === 'confirm' && request.danger === true;
   const info = request.kind === 'confirm' && request.info === true;
   const disableConfirm = request.kind === 'prompt' && !value.trim();
@@ -98,6 +110,28 @@ export function Modal({ request, onClose }: Props) {
       >
         <h2>{request.title}</h2>
         {request.kind === 'confirm' && <p className="modal-message">{request.message}</p>}
+        {request.kind === 'choice' && request.message && (
+          <p className="modal-message">{request.message}</p>
+        )}
+        {request.kind === 'choice' && (
+          <div className="choice-list">
+            {request.options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className="choice-option"
+                title={option.detail}
+                onClick={() => {
+                  request.onSelect(option.id);
+                  onClose();
+                }}
+              >
+                <span>{option.label}</span>
+                {option.detail && <small>{option.detail}</small>}
+              </button>
+            ))}
+          </div>
+        )}
         <form onSubmit={(event) => { event.preventDefault(); confirmRequest(); }}>
           {request.kind === 'prompt' && (
             <input
@@ -110,9 +144,11 @@ export function Modal({ request, onClose }: Props) {
           )}
           <div className="modal-actions">
             {!info && <button type="button" onClick={onClose}>Cancel</button>}
-            <button ref={confirmRef} type="submit" className={danger ? 'danger' : ''} disabled={disableConfirm}>
-              {confirmLabel}
-            </button>
+            {request.kind !== 'choice' && (
+              <button ref={confirmRef} type="submit" className={danger ? 'danger' : ''} disabled={disableConfirm}>
+                {confirmLabel}
+              </button>
+            )}
           </div>
         </form>
       </div>

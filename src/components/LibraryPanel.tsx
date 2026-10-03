@@ -1,14 +1,8 @@
 import type { Plan } from '../model/types';
-import type { PlanTemplate, StepTemplate, TemplateAmount } from '../model/templates';
-import { instantiatePlanTemplate, instantiateStepTemplate } from '../model/templates';
+import type { PlanTemplate, StepTemplate } from '../model/templates';
+import { instantiatePlanTemplate, instantiateStepTemplate, templateSummary } from '../model/templates';
 import { newId } from '../model/types';
 import type { Ask } from './Modal';
-
-/** Tooltip describing what a step template consumes and produces. */
-function templateSummary(t: StepTemplate): string {
-  const fmt = (a: TemplateAmount) => `${a.amount} ${a.resourceName}`;
-  return `${t.inputs.map(fmt).join(', ')} → ${t.outputs.map(fmt).join(', ')}`;
-}
 
 /** Remove the item with the given id (used when deleting a template row). */
 function withoutId<T extends { id: string }>(items: T[], id: string): T[] {
