@@ -214,7 +214,7 @@ export default function App() {
     setSelectedStepId(step.id);
   }
 
-  function offerProducers(resourceId: string, stepId: string) {
+  function offerProducers(resourceId: string, stepId: string, inputIndex: number) {
     const resource = plan.resources.find((r) => r.id === resourceId);
     if (!resource) return;
     const matches = workspace.stepTemplates.filter((t) =>
@@ -238,8 +238,20 @@ export default function App() {
         const tpl = matches.find((t) => t.id === tplId);
         if (!tpl) return;
         const next = instantiateStepTemplate(plan, tpl, position);
-        updatePlan(next);
-        setSelectedStepId(next.steps[next.steps.length - 1].id);
+        const newStep = next.steps[next.steps.length - 1];
+        // Auto-connect the new step's matching output to the clicked input.
+        const outIndex = newStep.outputs.findIndex((o) => o.resourceId === resource.id);
+        const linked =
+          outIndex >= 0
+            ? connectPorts(
+                next,
+                { stepId: newStep.id, kind: 'output', index: outIndex },
+                { stepId, kind: 'input', index: inputIndex },
+                resource.id,
+              )
+            : next;
+        updatePlan(linked);
+        setSelectedStepId(newStep.id);
       },
     });
   }

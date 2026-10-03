@@ -11,7 +11,7 @@ interface Props {
   /** Double-click a step's input handle: create a step that makes that resource. */
   onCreateProducer: (resourceId: string) => void;
   /** Single click a step's input handle: offer library steps that make it. */
-  onOfferProducers: (resourceId: string, stepId: string) => void;
+  onOfferProducers: (resourceId: string, stepId: string, inputIndex: number) => void;
   onConnect: (
     sourceStepId: string,
     sourceKind: PortKind,
@@ -180,7 +180,7 @@ function StepNode({
             handleDragged.current = false;
             return;
           }
-          if (isInput) onOfferProducers(resourceId, step.id);
+          if (isInput) onOfferProducers(resourceId, step.id, index);
         }}
         onDoubleClick={isInput ? () => onCreateProducer(resourceId) : undefined}
         title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect${
