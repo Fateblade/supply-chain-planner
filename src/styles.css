@@ -529,9 +529,16 @@ select:focus {
   white-space: nowrap;
 }
 .field-scroll {
-  overflow: auto;
+  overflow: hidden; /* pan/zoom is handled by the canvas transform */
   flex: 1;
   min-height: 0;
+}
+.field-scroll.panning {
+  cursor: grabbing;
+  user-select: none;
+}
+.field-scroll.panning * {
+  cursor: grabbing;
 }
 .field-canvas {
   position: relative;
@@ -542,6 +549,7 @@ select:focus {
   background-color: #101720;
   background-image: radial-gradient(#2b3949 1px, transparent 1px);
   background-size: 24px 24px;
+  will-change: transform;
 }
 .field-links {
   position: absolute;
