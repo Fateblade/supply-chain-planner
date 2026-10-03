@@ -28,7 +28,7 @@ SPA fallback and long-lived caching for hashed assets. Note: plans autosave
 to the browser's localStorage, so they are per-browser, not per-container —
 container data is stateless.
 
-## How to use (P1)
+## How to use
 
 1. **Add resources** (left panel). Toggle **raw** for things supplied from
    outside (mined/bought) and **★** for final products you want.
