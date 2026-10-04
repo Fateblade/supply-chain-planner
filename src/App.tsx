@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Plan, ProcessStep } from './model/types';
 import { newId } from './model/types';
-import { connectPorts } from './model/links';
+import { connectPorts, removeStepAndLinks } from './model/links';
 import { solvePlan } from './model/solver';
 import { samplePlan } from './model/sample';
 import { instantiateStepTemplate, isStepInLibrary, stepToTemplate, templateSummary } from './model/templates';
@@ -191,6 +191,42 @@ export default function App() {
       },
     );
   }
+
+  function requestDeleteStep() {
+    if (!selectedStep) return;
+    ask({
+      kind: 'confirm',
+      title: 'Delete step',
+      message: `Delete step “${selectedStep.name || 'Unnamed step'}”? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: () => updatePlan(removeStepAndLinks(plan, selectedStep.id)),
+    });
+  }
+
+  // Delete key removes the selected step, unless the user is typing
+  // in a field where Delete edits text.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Delete' || !selectedStep) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      requestDeleteStep();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // Re-subscribe when the captured plan/step change so onConfirm sees
+    // fresh state.
+  }, [selectedStep, plan]);
 
   function addStepAt(x: number, y: number) {
     const step = { id: newId(), name: '', inputs: [], outputs: [], position: { x, y } };
@@ -395,7 +431,7 @@ export default function App() {
                 onChange={updatePlan}
                 onSaveTemplate={saveStepAsTemplate}
                 inLibrary={isStepInLibrary(selectedStep, plan, workspace.stepTemplates)}
-                ask={ask}
+                onDelete={requestDeleteStep}
               />
             </section>
           ) : (

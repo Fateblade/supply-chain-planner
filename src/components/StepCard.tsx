@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Plan, ProcessStep, ResourceAmount } from '../model/types';
-import { removePortAndLinks, removeStepAndLinks } from '../model/links';
+import { removePortAndLinks } from '../model/links';
 import { newId } from '../model/types';
-import type { Ask } from './Modal';
 
 interface Props {
   plan: Plan;
@@ -11,11 +10,12 @@ interface Props {
   onSaveTemplate: (step: ProcessStep) => void;
   /** True when an identical copy of this step is already in the library. */
   inLibrary?: boolean;
-  ask: Ask;
+  /** Opens the delete confirmation (shared with the Delete hotkey). */
+  onDelete: () => void;
 }
 
 /** One process step card: name, input rows, output rows, duplicate/delete. */
-export function StepCard({ plan, step, onChange, onSaveTemplate, inLibrary = false, ask }: Props) {
+export function StepCard({ plan, step, onChange, onSaveTemplate, inLibrary = false, onDelete }: Props) {
   const nameRef = useRef<HTMLInputElement>(null);
 
   // A freshly created (or still unnamed) step gets the cursor in its name
@@ -65,14 +65,7 @@ export function StepCard({ plan, step, onChange, onSaveTemplate, inLibrary = fal
   }
 
   function remove() {
-    ask({
-      kind: 'confirm',
-      title: 'Delete step',
-      message: `Delete step “${step.name || 'Unnamed step'}”? This cannot be undone.`,
-      confirmLabel: 'Delete',
-      danger: true,
-      onConfirm: () => onChange(removeStepAndLinks(plan, step.id)),
-    });
+    onDelete();
   }
 
   function renderRows(kind: 'inputs' | 'outputs') {
