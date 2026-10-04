@@ -229,7 +229,7 @@ function StepNode({
   );
 }
 
-function LinkLines({ plan }: { plan: Plan }) {
+function LinkLines({ plan, selectedStepId }: { plan: Plan; selectedStepId?: string }) {
   const links = plan.links ?? [];
   return (
     <svg className="field-links" width="1040" height="760" aria-hidden="true">
@@ -241,7 +241,9 @@ function LinkLines({ plan }: { plan: Plan }) {
         if (!fromStep || !toStep) return null;
         const from = portPoint(fromStep, link.from.index, link.from.kind, fromStepIndex);
         const to = portPoint(toStep, link.to.index, link.to.kind, toStepIndex);
-        return <path key={link.id} d={linkPath(from, to)} />;
+        const touchesSelected =
+          link.from.stepId === selectedStepId || link.to.stepId === selectedStepId;
+        return <path key={link.id} d={linkPath(from, to)} className={touchesSelected ? 'linked' : undefined} />;
       })}
     </svg>
   );
@@ -397,7 +399,7 @@ export function InteractiveField({
             transformOrigin: '0 0',
           }}
         >
-          <LinkLines plan={plan} />
+          <LinkLines plan={plan} selectedStepId={selectedStepId} />
           {plan.steps.map((step, index) => (
             <StepNode
               key={step.id}

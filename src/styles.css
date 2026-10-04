@@ -601,6 +601,11 @@ select:focus {
   stroke-linecap: round;
   opacity: 0.75;
 }
+.field-links path.linked {
+  opacity: 1;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px var(--accent));
+}
 .field-step {
   position: absolute;
   width: 190px;
