@@ -481,7 +481,7 @@ select:focus {
   margin-bottom: 8px;
 }
 .step-controls .duration {
-  width: 64px;
+  width: 102px;
 }
 .step-actions {
   display: flex;
@@ -645,6 +645,32 @@ select:focus {
   align-items: center;
   padding: 9px 7px;
 }
+.note-toggle {
+  display: block;
+  width: 100%;
+  border: none;
+  border-top: 1px solid #354354;
+  border-radius: 0 0 10px 10px;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 0;
+  cursor: pointer;
+}
+.note-toggle:hover {
+  color: var(--accent);
+}
+.field-note {
+  padding: 6px 11px 9px;
+  border-top: 1px solid #354354;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  user-select: text;
+  cursor: auto;
+}
 .field-handles {
   display: flex;
   flex-direction: column;
@@ -759,6 +785,22 @@ select:focus {
 .io-row select {
   flex: 1;
   min-width: 0;
+}
+.step-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.step-note textarea {
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: #10161f;
+  color: var(--text);
+  resize: vertical;
+  min-height: 44px;
 }
 .link {
   border: none;

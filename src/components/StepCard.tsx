@@ -166,6 +166,15 @@ export function StepCard({ plan, step, onChange, onSaveTemplate, inLibrary = fal
         <div className="arrow" aria-hidden="true">↓</div>
         {renderRows('outputs')}
       </div>
+      <label className="step-note">
+        <span className="io-label">Note</span>
+        <textarea
+          rows={2}
+          value={step.note ?? ''}
+          placeholder="Notes about this step…"
+          onChange={(e) => patchStep({ note: e.target.value })}
+        />
+      </label>
     </div>
   );
 }

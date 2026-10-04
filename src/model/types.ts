@@ -31,6 +31,8 @@ export interface ProcessStep {
   outputs: ResourceAmount[];
   /** How long one run takes; needed for station counting (P2). */
   durationSeconds?: number;
+  /** Free-form remark shown on the field node and editable on the card. */
+  note?: string;
   /** Position on the interactive planning field. Older plans may omit it. */
   position?: { x: number; y: number };
 }

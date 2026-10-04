@@ -14,6 +14,7 @@ export interface StepTemplate {
   id: string;
   name: string;
   durationSeconds?: number;
+  note?: string;
   inputs: TemplateAmount[];
   outputs: TemplateAmount[];
 }
@@ -31,6 +32,7 @@ export function stepToTemplate(step: ProcessStep, plan: Plan, name?: string): St
     id: newId(),
     name: name?.trim() || step.name || 'Unnamed step',
     durationSeconds: step.durationSeconds,
+    note: step.note,
     inputs: step.inputs.map((a) => ({ resourceName: nameOf(a.resourceId), amount: a.amount })),
     outputs: step.outputs.map((a) => ({ resourceName: nameOf(a.resourceId), amount: a.amount })),
   };
@@ -52,6 +54,7 @@ export function isStepInLibrary(step: ProcessStep, plan: Plan, templates: StepTe
     (t) =>
       t.name === ref.name &&
       t.durationSeconds === ref.durationSeconds &&
+      t.note === ref.note &&
       same(t.inputs, ref.inputs) &&
       same(t.outputs, ref.outputs),
   );
@@ -79,6 +82,7 @@ export function instantiateStepTemplate(
     id: newId(),
     name: tpl.name,
     durationSeconds: tpl.durationSeconds,
+    note: tpl.note,
     inputs: tpl.inputs.map((a) => ({ resourceId: resolve(a.resourceName), amount: a.amount })),
     outputs: tpl.outputs.map((a) => ({ resourceId: resolve(a.resourceName), amount: a.amount })),
     position,

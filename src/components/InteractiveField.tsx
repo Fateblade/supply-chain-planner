@@ -105,6 +105,7 @@ function StepNode({
   const position = step.position ?? defaultPosition(index);
   const nodeDragStarted = useRef(false);
   const handleDragged = useRef(false);
+  const [noteOpen, setNoteOpen] = useState(false);
 
   function startDrag(event: DragEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return;
@@ -225,6 +226,22 @@ function StepNode({
           {step.outputs.map((output, outputIndex) => renderHandle('output', output.resourceId, outputIndex))}
         </div>
       </div>
+      {step.note && (
+        <button
+          type="button"
+          className={`note-toggle ${noteOpen ? 'open' : ''}`}
+          title={noteOpen ? 'Hide note' : 'Show note'}
+          aria-expanded={noteOpen}
+          onClick={(event) => {
+            // Toggle the note without selecting the step or starting a drag.
+            event.stopPropagation();
+            setNoteOpen((open) => !open);
+          }}
+        >
+          {noteOpen ? '↑' : '↓'}
+        </button>
+      )}
+      {noteOpen && step.note && <div className="field-note">{step.note}</div>}
     </div>
   );
 }
