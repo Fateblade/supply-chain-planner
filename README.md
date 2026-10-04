@@ -4,16 +4,43 @@ A fast, single-screen tool for planning production chains: define resources,
 define process steps that turn inputs into outputs, mark what you want as
 final — and get exactly how often every step must run.
 
-## Run it
+## Run it locally
 
 ```sh
 npm install
+```
+
+```sh
 npm run dev     # http://localhost:5173
+```
+
+```sh
 npm test        # solver unit tests
+```
+
+```sh
 npm run build   # production bundle in dist/
 ```
 
-## How to use (P1)
+## Run it in Docker
+
+Build and run the containerized app (multi-stage build: Node builds the
+bundle, nginx serves it):
+
+```sh
+docker build -t supply-chain-planner .
+```
+
+```sh
+docker run -p 8080:80 supply-chain-planner
+```
+
+Then open http://localhost:8080. The nginx config (`nginx.conf`) handles the
+SPA fallback and long-lived caching for hashed assets. Note: plans autosave
+to the browser's localStorage, so they are per-browser, not per-container —
+container data is stateless.
+
+## How to use
 
 1. **Add resources** (left panel). Toggle **raw** for things supplied from
    outside (mined/bought) and **★** for final products you want.
