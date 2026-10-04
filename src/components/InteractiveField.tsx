@@ -12,6 +12,8 @@ interface Props {
   onCreateProducer: (resourceId: string) => void;
   /** Single click a step's input handle: offer library steps that make it. */
   onOfferProducers: (resourceId: string, stepId: string, inputIndex: number) => void;
+  /** Rearrange all steps into link-flow columns. */
+  onAutoLayout: () => void;
   onConnect: (
     sourceStepId: string,
     sourceKind: PortKind,
@@ -254,6 +256,7 @@ export function InteractiveField({
   onConnect,
   onCreateProducer,
   onOfferProducers,
+  onAutoLayout,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Mirror of viewState so imperative handlers always read fresh values.
@@ -359,18 +362,25 @@ export function InteractiveField({
             zoom · middle-drag to pan
           </p>
         </div>
-        <span className="field-count">
-          {plan.steps.length} steps
+        <div className="field-tools">
+          <button type="button" className="link" onClick={onAutoLayout} title="Arrange steps into link-flow columns">
+            Auto layout
+          </button>
+          <span className="field-divider" aria-hidden="true" />
+          <span className="field-count">{plan.steps.length} steps</span>
           {viewChanged && (
-            <button
-              type="button"
-              className="link"
-              onClick={() => applyView({ zoom: 1, pan: { x: 0, y: 0 } })}
-            >
-              reset view
-            </button>
+            <>
+              <span className="field-divider" aria-hidden="true" />
+              <button
+                type="button"
+                className="link"
+                onClick={() => applyView({ zoom: 1, pan: { x: 0, y: 0 } })}
+              >
+                Reset view
+              </button>
+            </>
           )}
-        </span>
+        </div>
       </div>
       <div
         ref={scrollRef}

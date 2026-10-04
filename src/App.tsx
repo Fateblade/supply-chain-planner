@@ -17,6 +17,7 @@ import {
 } from './model/workspaces';
 import { currentPlan, loadWorkspaceState, saveWorkspaceState } from './state/workspaces';
 import { exportPlan } from './state/persistence';
+import { autoLayout } from './model/layout';
 import { ResourcePanel } from './components/ResourcePanel';
 import { StepCard } from './components/StepCard';
 import { ResultsPanel } from './components/ResultsPanel';
@@ -415,6 +416,7 @@ export default function App() {
           onAddStep={addStepAt}
           onCreateProducer={createProducer}
           onOfferProducers={offerProducers}
+          onAutoLayout={() => updatePlan(autoLayout(plan))}
           onConnect={connectSteps}
         />
         <aside className="right-col">
