@@ -1,6 +1,7 @@
-import { useRef } from 'react';
-import type { DragEvent, MouseEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { DragEvent, MouseEvent as ReactMouseEvent } from 'react';
 import type { Plan, PortKind, ProcessStep, StepLink } from '../model/types';
+import { fmt } from '../format';
 
 interface Props {
   plan: Plan;
@@ -8,6 +9,17 @@ interface Props {
   onSelect: (stepId: string) => void;
   onMove: (stepId: string, x: number, y: number) => void;
   onAddStep: (x: number, y: number) => void;
+  /** Double-click a step's input handle: create a step that makes that resource. */
+  onCreateProducer: (resourceId: string) => void;
+  /** Single click a step's input handle: offer library steps that make it. */
+  onOfferProducers: (resourceId: string, stepId: string, inputIndex: number) => void;
+  /** Rearrange all steps into link-flow columns. */
+  onAutoLayout: () => void;
+  /** Port amount display: per-run recipe amounts or target totals. */
+  amountMode: 'run' | 'target';
+  /** Required runs per step from the solver, for target totals. */
+  runs: Map<string, number>;
+  onAmountMode: (mode: 'run' | 'target') => void;
   onConnect: (
     sourceStepId: string,
     sourceKind: PortKind,
@@ -23,6 +35,13 @@ const NODE_WIDTH = 190;
 const NODE_HEIGHT = 120;
 const PORT_TOP = 52;
 const PORT_GAP = 29;
+/** Planning-field base size; matches the .field-canvas CSS minimums. */
+const FIELD_W = 1040;
+const FIELD_H = 760;
+/** Room beyond the farthest step so new ones can be placed past it. */
+const FIELD_MARGIN = 600;
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 2.5;
 
 type DragPayload =
   | { type: 'resource'; stepId: string; kind: PortKind; index: number; resourceId: string }
@@ -70,21 +89,33 @@ function StepNode({
   plan,
   step,
   index,
+  zoom,
+  amountMode,
+  runs,
   selected,
   onSelect,
   onMove,
   onConnect,
+  onCreateProducer,
+  onOfferProducers,
 }: {
   plan: Plan;
   step: ProcessStep;
   index: number;
+  zoom: number;
+  amountMode: 'run' | 'target';
+  runs: Map<string, number>;
   selected: boolean;
   onSelect: () => void;
   onMove: (x: number, y: number) => void;
   onConnect: Props['onConnect'];
+  onCreateProducer: Props['onCreateProducer'];
+  onOfferProducers: Props['onOfferProducers'];
 }) {
   const position = step.position ?? defaultPosition(index);
   const nodeDragStarted = useRef(false);
+  const handleDragged = useRef(false);
+  const [noteOpen, setNoteOpen] = useState(false);
 
   function startDrag(event: DragEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return;
@@ -100,8 +131,8 @@ function StepNode({
     if (!field) return;
     const bounds = field.getBoundingClientRect();
     onMove(
-      Math.max(NODE_WIDTH / 2, event.clientX - bounds.left),
-      Math.max(NODE_HEIGHT / 2, event.clientY - bounds.top),
+      Math.max(NODE_WIDTH / 2, (event.clientX - bounds.left) / zoom),
+      Math.max(NODE_HEIGHT / 2, (event.clientY - bounds.top) / zoom),
     );
   }
 
@@ -113,6 +144,7 @@ function StepNode({
   ) {
     event.stopPropagation();
     nodeDragStarted.current = false;
+    handleDragged.current = true;
     event.dataTransfer.setData(
       'application/json',
       JSON.stringify({ type: 'resource', stepId: step.id, kind, index, resourceId }),
@@ -143,6 +175,11 @@ function StepNode({
 
   function renderHandle(kind: PortKind, resourceId: string, index: number) {
     const isInput = kind === 'input';
+    const recipeAmount = isInput ? step.inputs[index].amount : step.outputs[index].amount;
+    // Per-run mode shows the recipe amount untouched; target mode shows the
+    // total quantity the step must move to satisfy the set targets.
+    const shown =
+      amountMode === 'run' ? recipeAmount : fmt(recipeAmount * (runs.get(step.id) ?? 0));
     return (
       <div
         className={`field-handle ${isInput ? 'input-handle' : 'output-handle'}`}
@@ -154,10 +191,22 @@ function StepNode({
           event.dataTransfer.dropEffect = 'copy';
         }}
         onDrop={(event) => connectToTarget(event, kind, index)}
-        title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect`}
+        onClick={() => {
+          // A handle drag suppresses the trailing click so it doesn't
+          // open the library picker.
+          if (handleDragged.current) {
+            handleDragged.current = false;
+            return;
+          }
+          if (isInput) onOfferProducers(resourceId, step.id, index);
+        }}
+        onDoubleClick={isInput ? () => onCreateProducer(resourceId) : undefined}
+        title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect${
+          isInput ? ' · click for library steps · double-click to create one' : ''
+        }${amountMode === 'target' ? ' · total for the set target' : ''}`}
       >
         {isInput ? <span>{resourceName(plan, resourceId)}</span> : <b>{resourceName(plan, resourceId)}</b>}
-        <b>{isInput ? step.inputs[index].amount : step.outputs[index].amount}</b>
+        <b>{shown}</b>
       </div>
     );
   }
@@ -192,11 +241,27 @@ function StepNode({
           {step.outputs.map((output, outputIndex) => renderHandle('output', output.resourceId, outputIndex))}
         </div>
       </div>
+      {step.note && noteOpen && <div className="field-note">{step.note}</div>}
+      {step.note && (
+        <button
+          type="button"
+          className={`note-toggle ${noteOpen ? 'open' : ''}`}
+          title={noteOpen ? 'Hide note' : 'Show note'}
+          aria-expanded={noteOpen}
+          onClick={(event) => {
+            // Toggle the note without selecting the step or starting a drag.
+            event.stopPropagation();
+            setNoteOpen((open) => !open);
+          }}
+        >
+          {noteOpen ? '↑' : '↓'}
+        </button>
+      )}
     </div>
   );
 }
 
-function LinkLines({ plan }: { plan: Plan }) {
+function LinkLines({ plan, selectedStepId }: { plan: Plan; selectedStepId?: string }) {
   const links = plan.links ?? [];
   return (
     <svg className="field-links" width="1040" height="760" aria-hidden="true">
@@ -208,7 +273,9 @@ function LinkLines({ plan }: { plan: Plan }) {
         if (!fromStep || !toStep) return null;
         const from = portPoint(fromStep, link.from.index, link.from.kind, fromStepIndex);
         const to = portPoint(toStep, link.to.index, link.to.kind, toStepIndex);
-        return <path key={link.id} d={linkPath(from, to)} />;
+        const touchesSelected =
+          link.from.stepId === selectedStepId || link.to.stepId === selectedStepId;
+        return <path key={link.id} d={linkPath(from, to)} className={touchesSelected ? 'linked' : undefined} />;
       })}
     </svg>
   );
@@ -221,41 +288,191 @@ export function InteractiveField({
   onMove,
   onAddStep,
   onConnect,
+  onCreateProducer,
+  onOfferProducers,
+  onAutoLayout,
+  amountMode,
+  runs,
+  onAmountMode,
 }: Props) {
-  function addOnDoubleClick(event: MouseEvent<HTMLDivElement>) {
-    if (event.target !== event.currentTarget) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    onAddStep(event.clientX - bounds.left, event.clientY - bounds.top);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Mirror of viewState so imperative handlers always read fresh values.
+  const view = useRef({ zoom: 1, pan: { x: 0, y: 0 } });
+  const [viewState, setViewState] = useState(view.current);
+  const [panning, setPanning] = useState(false);
+
+  // Content plane: base size plus room past the farthest step, so pan and
+  // zoom always reach steps placed outside the original viewport.
+  const plane = useRef({ w: FIELD_W, h: FIELD_H });
+  const planeW = Math.max(
+    FIELD_W,
+    ...plan.steps.map((step) => (step.position?.x ?? 0) + FIELD_MARGIN),
+  );
+  const planeH = Math.max(
+    FIELD_H,
+    ...plan.steps.map((step) => (step.position?.y ?? 0) + FIELD_MARGIN),
+  );
+  plane.current = { w: planeW, h: planeH };
+
+  function applyView(next: { zoom: number; pan: { x: number; y: number } }) {
+    // Keep the canvas visual box overlapping the viewport so the content
+    // can never be panned or zoomed completely out of sight.
+    const el = scrollRef.current;
+    if (el) {
+      const vpW = el.clientWidth;
+      const vpH = el.clientHeight;
+      next.pan = {
+        x: Math.min(0, Math.max(vpW - plane.current.w * next.zoom, next.pan.x)),
+        y: Math.min(0, Math.max(vpH - plane.current.h * next.zoom, next.pan.y)),
+      };
+    }
+    view.current = next;
+    setViewState(next);
   }
+
+  // Wheel zoom needs a non-passive listener: React's onWheel is passive,
+  // so preventDefault there cannot stop the browser's own scroll/zoom.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const viewport = el.getBoundingClientRect();
+      const mx = event.clientX - viewport.left;
+      const my = event.clientY - viewport.top;
+      const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+      const current = view.current;
+      const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current.zoom * factor));
+      const ratio = zoom / current.zoom;
+      applyView({
+        zoom,
+        // Zoom about the cursor: the content under the mouse stays there.
+        pan: { x: mx - (mx - current.pan.x) * ratio, y: my - (my - current.pan.y) * ratio },
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Middle-button drag pans the viewport (also disables native autoscroll).
+  function startPan(event: ReactMouseEvent<HTMLDivElement>) {
+    if (event.button !== 1) return;
+    event.preventDefault();
+    setPanning(true);
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const base = view.current.pan;
+    const zoom = view.current.zoom;
+    const move = (e: globalThis.MouseEvent) => {
+      applyView({ zoom, pan: { x: base.x + e.clientX - startX, y: base.y + e.clientY - startY } });
+    };
+    const stop = () => {
+      setPanning(false);
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', stop);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', stop);
+  }
+
+  // Attached to the scroll container so double-clicking the background
+  // beyond the content plane also places a step.
+  function addOnDoubleClick(event: ReactMouseEvent<HTMLDivElement>) {
+    if (event.target instanceof HTMLElement && event.target.closest('.field-step')) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    // The canvas is visually transformed; convert screen px to content px.
+    onAddStep(
+      (event.clientX - bounds.left - view.current.pan.x) / view.current.zoom,
+      (event.clientY - bounds.top - view.current.pan.y) / view.current.zoom,
+    );
+  }
+
+  const viewChanged = viewState.zoom !== 1 || viewState.pan.x !== 0 || viewState.pan.y !== 0;
 
   return (
     <section className="field-panel">
       <div className="field-toolbar">
         <div>
           <h2>Planning field</h2>
-          <p>Double-click to add a step · drag nodes to arrange · drag handles to connect</p>
+          <p>
+            Double-click to add a step · drag nodes to arrange · drag handles to connect · wheel to
+            zoom · middle-drag to pan
+          </p>
         </div>
-        <span className="field-count">{plan.steps.length} steps</span>
+        <div className="field-tools">
+          <span className="mode-toggle" role="group" aria-label="Port amount display mode">
+            <button
+              type="button"
+              className={amountMode === 'run' ? 'active' : ''}
+              onClick={() => onAmountMode('run')}
+            >
+              Per run
+            </button>
+            <button
+              type="button"
+              className={amountMode === 'target' ? 'active' : ''}
+              onClick={() => onAmountMode('target')}
+            >
+              Per target
+            </button>
+          </span>
+          <span className="field-divider" aria-hidden="true" />
+          <button type="button" className="link" onClick={onAutoLayout} title="Arrange steps into link-flow columns">
+            Auto layout
+          </button>
+          <span className="field-divider" aria-hidden="true" />
+          <span className="field-count">{plan.steps.length} steps</span>
+          {viewChanged && (
+            <>
+              <span className="field-divider" aria-hidden="true" />
+              <button
+                type="button"
+                className="link"
+                onClick={() => applyView({ zoom: 1, pan: { x: 0, y: 0 } })}
+              >
+                Reset view
+              </button>
+            </>
+          )}
+        </div>
       </div>
-      <div className="field-scroll">
-        <div className="field-canvas" onDoubleClick={addOnDoubleClick}>
-          <LinkLines plan={plan} />
+      <div
+        ref={scrollRef}
+        className={`field-scroll ${panning ? 'panning' : ''}`}
+        onMouseDown={startPan}
+        onDoubleClick={addOnDoubleClick}
+      >
+        <div
+          className="field-canvas"
+          style={{
+            width: planeW,
+            height: planeH,
+            transform: `translate(${viewState.pan.x}px, ${viewState.pan.y}px) scale(${viewState.zoom})`,
+            transformOrigin: '0 0',
+          }}
+        >
+          <LinkLines plan={plan} selectedStepId={selectedStepId} />
           {plan.steps.map((step, index) => (
             <StepNode
               key={step.id}
               plan={plan}
               step={step}
               index={index}
+              zoom={viewState.zoom}
+              amountMode={amountMode}
+              runs={runs}
               selected={step.id === selectedStepId}
               onSelect={() => onSelect(step.id)}
               onMove={(x, y) => onMove(step.id, x, y)}
               onConnect={onConnect}
+              onCreateProducer={onCreateProducer}
+              onOfferProducers={onOfferProducers}
             />
           ))}
-          {plan.steps.length === 0 && (
-            <div className="field-empty">Double-click anywhere to add your first process step.</div>
-          )}
         </div>
+        {plan.steps.length === 0 && (
+          <div className="field-empty">Double-click anywhere to add your first process step.</div>
+        )}
       </div>
     </section>
   );

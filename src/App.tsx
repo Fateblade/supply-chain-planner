@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Plan, ProcessStep } from './model/types';
 import { newId } from './model/types';
-import { connectPorts } from './model/links';
+import { connectPorts, removeStepAndLinks } from './model/links';
 import { solvePlan } from './model/solver';
 import { samplePlan } from './model/sample';
-import { stepToTemplate } from './model/templates';
+import { instantiateStepTemplate, isStepInLibrary, stepToTemplate, templateSummary } from './model/templates';
 import {
   activeSavedPlan,
   activeWorkspace,
@@ -17,6 +17,7 @@ import {
 } from './model/workspaces';
 import { currentPlan, loadWorkspaceState, saveWorkspaceState } from './state/workspaces';
 import { exportPlan } from './state/persistence';
+import { autoLayout } from './model/layout';
 import { ResourcePanel } from './components/ResourcePanel';
 import { StepCard } from './components/StepCard';
 import { ResultsPanel } from './components/ResultsPanel';
@@ -51,6 +52,7 @@ export default function App() {
 
   useEffect(() => saveWorkspaceState(workspaceState), [workspaceState]);
   const result = useMemo(() => solvePlan(plan), [plan]);
+  const [amountMode, setAmountMode] = useState<'run' | 'target'>('run');
   const selectedStep = plan.steps.find((step) => step.id === selectedStepId);
 
   useEffect(() => {
@@ -122,10 +124,6 @@ export default function App() {
   }
 
   function deleteWorkspace() {
-    if (workspaceState.workspaces.length <= 1) {
-      askInfo('Cannot delete workspace', 'Keep at least one workspace.');
-      return;
-    }
     askConfirm(
       {
         title: 'Delete workspace',
@@ -167,10 +165,6 @@ export default function App() {
   }
 
   function deletePlan() {
-    if (workspace.plans.length <= 1) {
-      askInfo('Cannot delete plan', 'Keep at least one plan in each workspace.');
-      return;
-    }
     askConfirm(
       {
         title: 'Delete plan',
@@ -200,10 +194,104 @@ export default function App() {
     );
   }
 
+  function requestDeleteStep() {
+    if (!selectedStep) return;
+    ask({
+      kind: 'confirm',
+      title: 'Delete step',
+      message: `Delete step “${selectedStep.name || 'Unnamed step'}”? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: () => updatePlan(removeStepAndLinks(plan, selectedStep.id)),
+    });
+  }
+
+  // Delete key removes the selected step, unless the user is typing
+  // in a field where Delete edits text.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Delete' || !selectedStep) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      requestDeleteStep();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // Re-subscribe when the captured plan/step change so onConfirm sees
+    // fresh state.
+  }, [selectedStep, plan]);
+
   function addStepAt(x: number, y: number) {
     const step = { id: newId(), name: '', inputs: [], outputs: [], position: { x, y } };
     updatePlan({ ...plan, steps: [...plan.steps, step] });
     setSelectedStepId(step.id);
+  }
+
+  function createProducer(resourceId: string) {
+    const resource = plan.resources.find((r) => r.id === resourceId);
+    if (!resource) return;
+    // Place the new producing step one row below the step that needs it.
+    const position = { x: selectedStep?.position?.x ?? 150, y: (selectedStep?.position?.y ?? 120) + 190 };
+    const step = {
+      id: newId(),
+      name: resource.name,
+      inputs: [],
+      outputs: [{ resourceId: resource.id, amount: 1 }],
+      position,
+    };
+    updatePlan({ ...plan, steps: [...plan.steps, step] });
+    setSelectedStepId(step.id);
+  }
+
+  function offerProducers(resourceId: string, stepId: string, inputIndex: number) {
+    const resource = plan.resources.find((r) => r.id === resourceId);
+    if (!resource) return;
+    const matches = workspace.stepTemplates.filter((t) =>
+      t.outputs.some((o) => o.resourceName.toLowerCase() === resource.name.toLowerCase()),
+    );
+    if (matches.length === 0) {
+      askInfo(
+        'No library steps',
+        `No step template makes “${resource.name}”. Save one with ☆ on its card first.`,
+      );
+      return;
+    }
+    const source = plan.steps.find((s) => s.id === stepId);
+    const position = { x: source?.position?.x ?? 150, y: (source?.position?.y ?? 120) + 190 };
+    ask({
+      kind: 'choice',
+      title: `Steps that make “${resource.name}”`,
+      message: 'Insert a copy from the library?',
+      options: matches.map((t) => ({ id: t.id, label: t.name, detail: templateSummary(t) })),
+      onSelect: (tplId) => {
+        const tpl = matches.find((t) => t.id === tplId);
+        if (!tpl) return;
+        const next = instantiateStepTemplate(plan, tpl, position);
+        const newStep = next.steps[next.steps.length - 1];
+        // Auto-connect the new step's matching output to the clicked input.
+        const outIndex = newStep.outputs.findIndex((o) => o.resourceId === resource.id);
+        const linked =
+          outIndex >= 0
+            ? connectPorts(
+                next,
+                { stepId: newStep.id, kind: 'output', index: outIndex },
+                { stepId, kind: 'input', index: inputIndex },
+                resource.id,
+              )
+            : next;
+        updatePlan(linked);
+        setSelectedStepId(newStep.id);
+      },
+    });
   }
 
   function moveStep(stepId: string, x: number, y: number) {
@@ -299,10 +387,14 @@ export default function App() {
         onNewWorkspace={createNewWorkspace}
         onRenameWorkspace={renameWorkspace}
         onDeleteWorkspace={deleteWorkspace}
+        deleteWorkspaceReason={
+          workspaceState.workspaces.length <= 1 ? 'Cannot delete the last workspace.' : undefined
+        }
         onSelectPlan={selectPlan}
         onNewPlan={createPlan}
         onRenamePlan={renamePlan}
         onDeletePlan={deletePlan}
+        deletePlanReason={workspace.plans.length <= 1 ? 'Cannot delete the last plan in a workspace.' : undefined}
       />
       <main>
         <div className="left-col">
@@ -323,6 +415,12 @@ export default function App() {
           onSelect={setSelectedStepId}
           onMove={moveStep}
           onAddStep={addStepAt}
+          onCreateProducer={createProducer}
+          onOfferProducers={offerProducers}
+          onAutoLayout={() => updatePlan(autoLayout(plan))}
+          amountMode={amountMode}
+          runs={result.runs}
+          onAmountMode={setAmountMode}
           onConnect={connectSteps}
         />
         <aside className="right-col">
@@ -330,9 +428,17 @@ export default function App() {
             <section className="panel selected-step-panel">
               <div className="sidebar-heading">
                 <h2>Selected step</h2>
-                <button type="button" className="icon" onClick={clearSelection}>×</button>
+                <button type="button" className="bare" title="Deselect step" onClick={clearSelection}>×</button>
               </div>
-              <StepCard plan={plan} step={selectedStep} onChange={updatePlan} onSaveTemplate={saveStepAsTemplate} />
+              <StepCard
+                key={selectedStep.id}
+                plan={plan}
+                step={selectedStep}
+                onChange={updatePlan}
+                onSaveTemplate={saveStepAsTemplate}
+                inLibrary={isStepInLibrary(selectedStep, plan, workspace.stepTemplates)}
+                onDelete={requestDeleteStep}
+              />
             </section>
           ) : (
             <section className="panel selection-empty">

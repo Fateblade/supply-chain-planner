@@ -19,10 +19,14 @@ interface Props {
   onNewWorkspace: () => void;
   onRenameWorkspace: () => void;
   onDeleteWorkspace: () => void;
+  /** Set when the delete button must be disabled; explains why. */
+  deleteWorkspaceReason?: string;
   onSelectPlan: (planId: string) => void;
   onNewPlan: () => void;
   onRenamePlan: () => void;
   onDeletePlan: () => void;
+  /** Set when the delete button must be disabled; explains why. */
+  deletePlanReason?: string;
 }
 
 /** Collapsible left sidepanel for workspace and plan management.
@@ -38,10 +42,12 @@ export function WorkspacePanel({
   onNewWorkspace,
   onRenameWorkspace,
   onDeleteWorkspace,
+  deleteWorkspaceReason,
   onSelectPlan,
   onNewPlan,
   onRenamePlan,
   onDeletePlan,
+  deletePlanReason,
 }: Props) {
   const stripRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLButtonElement>(null);
@@ -105,7 +111,14 @@ export function WorkspacePanel({
         </select>
         <button type="button" className="icon" onClick={onNewWorkspace} title="New workspace">+</button>
         <button type="button" className="icon" onClick={onRenameWorkspace} title="Rename workspace">R</button>
-        <button type="button" className="icon danger" onClick={onDeleteWorkspace} title="Delete workspace">D</button>
+        <button
+          type="button"
+          className="icon danger"
+          onClick={onDeleteWorkspace}
+          disabled={deleteWorkspaceReason !== undefined}
+          title={deleteWorkspaceReason ?? 'Delete workspace'}
+          aria-disabled={deleteWorkspaceReason !== undefined}
+        >D</button>
       </div>
 
       <div className="panel-splitter" aria-hidden="true" />
@@ -130,7 +143,14 @@ export function WorkspacePanel({
       <div className="panel-row bottom">
         <button type="button" className="icon" onClick={onNewPlan} title="New plan">+</button>
         <button type="button" className="icon" onClick={onRenamePlan} title="Rename selected plan">R</button>
-        <button type="button" className="icon danger" onClick={onDeletePlan} title="Delete selected plan">D</button>
+        <button
+          type="button"
+          className="icon danger"
+          onClick={onDeletePlan}
+          disabled={deletePlanReason !== undefined}
+          title={deletePlanReason ?? 'Delete selected plan'}
+          aria-disabled={deletePlanReason !== undefined}
+        >D</button>
       </div>
     </section>
   );

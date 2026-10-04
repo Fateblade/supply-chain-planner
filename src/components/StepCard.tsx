@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import type { Plan, ProcessStep, ResourceAmount } from '../model/types';
-import { removePortAndLinks, removeStepAndLinks } from '../model/links';
+import { removePortAndLinks } from '../model/links';
 import { newId } from '../model/types';
 
 interface Props {
@@ -7,10 +8,23 @@ interface Props {
   step: ProcessStep;
   onChange: (plan: Plan) => void;
   onSaveTemplate: (step: ProcessStep) => void;
+  /** True when an identical copy of this step is already in the library. */
+  inLibrary?: boolean;
+  /** Opens the delete confirmation (shared with the Delete hotkey). */
+  onDelete: () => void;
 }
 
 /** One process step card: name, input rows, output rows, duplicate/delete. */
-export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
+export function StepCard({ plan, step, onChange, onSaveTemplate, inLibrary = false, onDelete }: Props) {
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  // A freshly created (or still unnamed) step gets the cursor in its name
+  // field right away; Enter confirms and leaves the field.
+  useEffect(() => {
+    if (!step.name) nameRef.current?.focus();
+    // Mount-only: the card is keyed by step id, so each selection remounts it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function patchStep(patch: Partial<ProcessStep>) {
     onChange({
       ...plan,
@@ -51,7 +65,7 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
   }
 
   function remove() {
-    onChange(removeStepAndLinks(plan, step.id));
+    onDelete();
   }
 
   function renderRows(kind: 'inputs' | 'outputs') {
@@ -101,11 +115,30 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
     <div className="step-card">
       <div className="step-head">
         <input
+          ref={nameRef}
           className="step-name"
           value={step.name}
           placeholder="Step name"
           onChange={(e) => patchStep({ name: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
         />
+        <button
+          type="button"
+          className={`icon star ${inLibrary ? 'saved' : ''}`}
+          disabled={inLibrary}
+          title={
+            inLibrary
+              ? 'Already saved in the library'
+              : 'Save as reusable template (appears in the Library)'
+          }
+          onClick={() => onSaveTemplate(step)}
+        >
+          {inLibrary ? '★' : '☆'}
+        </button>
+      </div>
+      <div className="step-controls">
         <input
           className="duration"
           type="number"
@@ -119,26 +152,29 @@ export function StepCard({ plan, step, onChange, onSaveTemplate }: Props) {
             patchStep({ durationSeconds: v });
           }}
         />
-        <button
-          type="button"
-          className="icon"
-          title="Save as reusable template (appears in the Library)"
-          onClick={() => onSaveTemplate(step)}
-        >
-          ☆
-        </button>
-        <button type="button" className="icon" title="Duplicate step" onClick={duplicate}>
-          ⧉
-        </button>
-        <button type="button" className="icon danger" title="Delete step" onClick={remove}>
-          ×
-        </button>
+        <div className="step-actions">
+          <button type="button" className="icon" title="Duplicate step" onClick={duplicate}>
+            ⧉
+          </button>
+          <button type="button" className="icon danger" title="Delete step" onClick={remove}>
+            D
+          </button>
+        </div>
       </div>
       <div className="step-body">
         {renderRows('inputs')}
-        <div className="arrow">→</div>
+        <div className="arrow" aria-hidden="true">↓</div>
         {renderRows('outputs')}
       </div>
+      <label className="step-note">
+        <span className="io-label">Note</span>
+        <textarea
+          rows={2}
+          value={step.note ?? ''}
+          placeholder="Notes about this step…"
+          onChange={(e) => patchStep({ note: e.target.value })}
+        />
+      </label>
     </div>
   );
 }
