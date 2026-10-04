@@ -226,6 +226,7 @@ function StepNode({
           {step.outputs.map((output, outputIndex) => renderHandle('output', output.resourceId, outputIndex))}
         </div>
       </div>
+      {step.note && noteOpen && <div className="field-note">{step.note}</div>}
       {step.note && (
         <button
           type="button"
@@ -241,7 +242,6 @@ function StepNode({
           {noteOpen ? '↑' : '↓'}
         </button>
       )}
-      {noteOpen && step.note && <div className="field-note">{step.note}</div>}
     </div>
   );
 }
