@@ -52,6 +52,7 @@ export default function App() {
 
   useEffect(() => saveWorkspaceState(workspaceState), [workspaceState]);
   const result = useMemo(() => solvePlan(plan), [plan]);
+  const [amountMode, setAmountMode] = useState<'run' | 'target'>('run');
   const selectedStep = plan.steps.find((step) => step.id === selectedStepId);
 
   useEffect(() => {
@@ -417,6 +418,9 @@ export default function App() {
           onCreateProducer={createProducer}
           onOfferProducers={offerProducers}
           onAutoLayout={() => updatePlan(autoLayout(plan))}
+          amountMode={amountMode}
+          runs={result.runs}
+          onAmountMode={setAmountMode}
           onConnect={connectSteps}
         />
         <aside className="right-col">

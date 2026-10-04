@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DragEvent, MouseEvent as ReactMouseEvent } from 'react';
 import type { Plan, PortKind, ProcessStep, StepLink } from '../model/types';
+import { fmt } from '../format';
 
 interface Props {
   plan: Plan;
@@ -14,6 +15,11 @@ interface Props {
   onOfferProducers: (resourceId: string, stepId: string, inputIndex: number) => void;
   /** Rearrange all steps into link-flow columns. */
   onAutoLayout: () => void;
+  /** Port amount display: per-run recipe amounts or target totals. */
+  amountMode: 'run' | 'target';
+  /** Required runs per step from the solver, for target totals. */
+  runs: Map<string, number>;
+  onAmountMode: (mode: 'run' | 'target') => void;
   onConnect: (
     sourceStepId: string,
     sourceKind: PortKind,
@@ -84,6 +90,8 @@ function StepNode({
   step,
   index,
   zoom,
+  amountMode,
+  runs,
   selected,
   onSelect,
   onMove,
@@ -95,6 +103,8 @@ function StepNode({
   step: ProcessStep;
   index: number;
   zoom: number;
+  amountMode: 'run' | 'target';
+  runs: Map<string, number>;
   selected: boolean;
   onSelect: () => void;
   onMove: (x: number, y: number) => void;
@@ -165,6 +175,11 @@ function StepNode({
 
   function renderHandle(kind: PortKind, resourceId: string, index: number) {
     const isInput = kind === 'input';
+    const recipeAmount = isInput ? step.inputs[index].amount : step.outputs[index].amount;
+    // Per-run mode shows the recipe amount untouched; target mode shows the
+    // total quantity the step must move to satisfy the set targets.
+    const shown =
+      amountMode === 'run' ? recipeAmount : fmt(recipeAmount * (runs.get(step.id) ?? 0));
     return (
       <div
         className={`field-handle ${isInput ? 'input-handle' : 'output-handle'}`}
@@ -188,10 +203,10 @@ function StepNode({
         onDoubleClick={isInput ? () => onCreateProducer(resourceId) : undefined}
         title={`${isInput ? 'Input' : 'Output'}: ${resourceName(plan, resourceId)} · drag to connect${
           isInput ? ' · click for library steps · double-click to create one' : ''
-        }`}
+        }${amountMode === 'target' ? ' · total for the set target' : ''}`}
       >
         {isInput ? <span>{resourceName(plan, resourceId)}</span> : <b>{resourceName(plan, resourceId)}</b>}
-        <b>{isInput ? step.inputs[index].amount : step.outputs[index].amount}</b>
+        <b>{shown}</b>
       </div>
     );
   }
@@ -276,6 +291,9 @@ export function InteractiveField({
   onCreateProducer,
   onOfferProducers,
   onAutoLayout,
+  amountMode,
+  runs,
+  onAmountMode,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Mirror of viewState so imperative handlers always read fresh values.
@@ -382,6 +400,23 @@ export function InteractiveField({
           </p>
         </div>
         <div className="field-tools">
+          <span className="mode-toggle" role="group" aria-label="Port amount display mode">
+            <button
+              type="button"
+              className={amountMode === 'run' ? 'active' : ''}
+              onClick={() => onAmountMode('run')}
+            >
+              Per run
+            </button>
+            <button
+              type="button"
+              className={amountMode === 'target' ? 'active' : ''}
+              onClick={() => onAmountMode('target')}
+            >
+              Per target
+            </button>
+          </span>
+          <span className="field-divider" aria-hidden="true" />
           <button type="button" className="link" onClick={onAutoLayout} title="Arrange steps into link-flow columns">
             Auto layout
           </button>
@@ -424,6 +459,8 @@ export function InteractiveField({
               step={step}
               index={index}
               zoom={viewState.zoom}
+              amountMode={amountMode}
+              runs={runs}
               selected={step.id === selectedStepId}
               onSelect={() => onSelect(step.id)}
               onMove={(x, y) => onMove(step.id, x, y)}
